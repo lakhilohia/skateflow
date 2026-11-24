@@ -1,0 +1,2685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkateFlow Academy | Learn Skating, Play & Pro Tricks Blog</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Space Grotesk -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Three.js r128 for Genuine 3D WebGL Skatepark Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+          },
+          colors: {
+            blogger: {
+              orange: '#FF5722',
+              dark: '#0F172A',
+              slate: '#1E293B',
+              amber: '#F59E0B',
+              emerald: '#10B981'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom Game & Smooth UI Styling */
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    #skateCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    @keyframes popFloat {
+      0% { opacity: 1; transform: translateY(0) scale(0.9); }
+      50% { opacity: 1; transform: translateY(-18px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-34px) scale(1); }
+    }
+    .trick-callout {
+      animation: popFloat 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+    }
+    .ad-slot-box {
+      background-image: repeating-linear-gradient(
+        -45deg,
+        #f1f5f9,
+        #f1f5f9 10px,
+        #e2e8f0 10px,
+        #e2e8f0 20px
+      );
+    }
+    .btn-3d {
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 0 #b45309;
+    }
+    .btn-3d:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #b45309;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-400 selection:text-slate-900">
+
+  <!-- Toast Notification Banner (Replaces alert()) -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- Custom Admin HTML Top Announcement Strip (Editable from Admin HTML Customizer) -->
+  <div id="customTopHtmlSlot" class="w-full bg-slate-900 text-amber-300 text-xs sm:text-sm font-medium text-center py-2 px-4 border-b border-slate-800">
+    🛹 <strong>WELCOME TO SKATEFLOW ACADEMY:</strong> Try our 10-Second Interactive Skate Simulator FREE! Unlock 24-Hour Pro Pass for just <strong>₹1/day</strong>.
+  </div>
+
+  <!-- Top Navigation Bar (Blogger Inspired Header) -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-3">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchMainView('blog')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-md">
+            <i class="fa-solid fa-person-skating text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-display font-extrabold text-xl tracking-tight text-slate-900">SkateFlow</span>
+              <span class="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">Blogger Edition</span>
+            </div>
+            <p class="text-[11px] text-slate-500 hidden sm:block">Pro Skating Lessons &amp; Arcade</p>
+          </div>
+        </div>
+
+        <!-- Center Category Pills (Desktop) -->
+        <nav class="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+          <button onclick="filterCategory('All')" class="cat-btn active-cat px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition" data-cat="All">All Lessons</button>
+          <button onclick="filterCategory('Balance & Stance')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition" data-cat="Balance & Stance">Balance &amp; Stance</button>
+          <button onclick="filterCategory('Stopping & Braking')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition" data-cat="Stopping & Braking">Stopping &amp; Braking</button>
+          <button onclick="filterCategory('Ollie & Street Tricks')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition" data-cat="Ollie & Street Tricks">Ollie &amp; Tricks</button>
+          <button onclick="filterCategory('Bowl & Ramp Carving')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition" data-cat="Bowl & Ramp Carving">Bowl &amp; Carving</button>
+        </nav>
+
+        <!-- Right User Status & Controls -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Pass / Trial Status Pill -->
+          <div id="accessBadge" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+            <i class="fa-solid fa-clock"></i>
+            <span id="accessBadgeText">10s Free Trial</span>
+          </div>
+
+          <!-- Admin CMS Toggle (Visible ONLY when Admin LAKHILOHIA is logged in) -->
+          <button id="adminToggleBtn" onclick="toggleAdminPanel()" class="hidden items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition">
+            <i class="fa-brands fa-blogger-b text-sm"></i>
+            <span id="adminToggleLabel">Admin Blogger CMS</span>
+          </button>
+
+          <!-- User Profile / Login Button -->
+          <div id="userControls" class="flex items-center gap-2">
+            <button onclick="openAuthModal()" id="loginNavBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white transition shadow-sm">
+              <i class="fa-solid fa-right-to-bracket"></i>
+              <span>Login</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOP LEADERBOARD BANNER AD SLOT (AdMob / AdSense / Custom HTML) -->
+  <div id="adWrapperTop" class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4">
+    <div class="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm">
+      <div class="flex items-center justify-between px-2 pb-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Advertisement • Top Leaderboard (728x90)</span>
+        <span class="text-[10px] text-slate-400">AdMob / Banner Slot #1</span>
+      </div>
+      <div id="adSlotTop" class="w-full min-h-[76px] rounded-xl overflow-hidden flex items-center justify-center ad-slot-box border border-dashed border-slate-300">
+        <!-- Default Ad Placeholder if Admin hasn't pasted custom HTML -->
+        <div class="flex flex-col sm:flex-row items-center justify-between w-full px-5 py-3 gap-3 bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white rounded-xl">
+          <div class="flex items-center gap-3">
+            <span class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-400 text-slate-900 rounded">SPONSORED</span>
+            <div>
+              <p class="text-sm font-bold">Pro Carbon-Fiber Skateboards &amp; ABEC-9 Bearings</p>
+              <p class="text-xs text-slate-300">Admin can replace this banner with live AdMob / AdSense HTML in Blogger CMS.</p>
+            </div>
+          </div>
+          <button onclick="openPaywallModal()" class="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs whitespace-nowrap transition">
+            Get ₹1/Day Pass
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: PUBLIC BLOGGER SKATING PORTAL & INTERACTIVE GAME               -->
+  <!-- ===================================================================== -->
+  <main id="publicBlogView" class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- HERO INTERACTIVE SKATING SIMULATOR SECTION -->
+    <section class="mb-8 bg-slate-900 rounded-3xl overflow-hidden shadow-xl border border-slate-800 text-white">
+      <div class="grid grid-cols-1 lg:grid-cols-12">
+        
+        <!-- Left Game Info & Controls (4 Cols) -->
+        <div class="lg:col-span-4 p-6 sm:p-8 flex flex-col justify-between bg-gradient-to-b from-slate-900 to-slate-950 border-b lg:border-b-0 lg:border-r border-slate-800">
+          <div>
+            <div id="heroBadgePill" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold mb-4">
+              <i class="fa-solid fa-cube"></i>
+              <span>3D WEBGL SKATEPARK ARENA</span>
+            </div>
+            <h1 id="heroHeadlineText" class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3">
+              Master 3D Street Flow, Ollies &amp; Rail Grinds
+            </h1>
+            <p class="text-slate-400 text-sm leading-relaxed mb-5">
+              Carve across 3 lanes in real-time 3D! Dodge traffic cones, grind steel rails, hit speed pads, and collect golden skate wheels.
+            </p>
+
+            <!-- Trial / Pass Timer Card -->
+            <div class="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 mb-5">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Session Access Status</span>
+                <span id="gameModePill" class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500 text-slate-950">10s TRIAL</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <div class="text-2xl font-display font-extrabold text-white" id="trialCountdownDisplay">10.0s</div>
+                <div class="text-xs text-slate-400" id="sessionSubtext">Free Visitor Preview</div>
+              </div>
+              <!-- Progress Bar -->
+              <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden mt-3">
+                <div id="trialProgressBar" class="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-100" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="space-y-2.5">
+            <button id="startGameBtn" onclick="startSkateGame()" class="btn-3d w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2">
+              <i class="fa-solid fa-play"></i>
+              <span>Start 3D Skate Run</span>
+            </button>
+
+            <!-- Touch / Mobile 3-Lane + Ollie Control Deck -->
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="switchLane(-1)" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-arrow-left text-amber-400"></i>
+                <span>Left</span>
+              </button>
+              <button onclick="triggerJump()" class="py-2.5 px-3 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-95 border border-orange-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-arrow-up"></i>
+                <span>Ollie</span>
+              </button>
+              <button onclick="switchLane(1)" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                <span>Right</span>
+                <i class="fa-solid fa-arrow-right text-amber-400"></i>
+              </button>
+            </div>
+
+            <button onclick="openPaywallModal()" id="unlockBannerBtn" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-bolt"></i>
+              <span>Unlock 24-Hour Unlimited Access (₹1/day)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Interactive 3D Canvas Arena (8 Cols) -->
+        <div class="lg:col-span-8 relative min-h-[330px] sm:min-h-[390px] bg-slate-950 flex flex-col">
+          <!-- Top HUD Overlay -->
+          <div class="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <div class="flex items-center gap-2">
+              <div class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 backdrop-blur text-xs font-bold flex items-center gap-2">
+                <span class="text-slate-400">SCORE:</span>
+                <span id="gameScoreHud" class="text-amber-400 font-display text-sm">0</span>
+              </div>
+              <div class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 backdrop-blur text-xs font-bold flex items-center gap-2">
+                <span class="text-slate-400">COMBO:</span>
+                <span id="gameComboHud" class="text-orange-400 font-display text-sm">x1</span>
+              </div>
+              <div class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 backdrop-blur text-xs font-bold flex items-center gap-2">
+                <span class="text-slate-400">BEST:</span>
+                <span id="gameBestHud" class="text-emerald-400 font-display text-sm">0</span>
+              </div>
+            </div>
+            <div class="hidden sm:block px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 backdrop-blur text-[11px] font-semibold text-slate-300">
+              <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300">← →</kbd> Lanes • <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300">SPACE</kbd> Ollie / Swipe
+            </div>
+          </div>
+
+          <!-- Dynamic Trick Callout Container -->
+          <div id="trickCalloutLayer" class="absolute inset-0 pointer-events-none z-10 flex items-center justify-center"></div>
+
+          <!-- Responsive Three.js 3D Canvas Wrapper -->
+          <div id="canvasWrapper" class="relative flex-1 w-full h-full min-h-[330px] sm:min-h-[390px] cursor-pointer select-none">
+            <canvas id="skateCanvas"></canvas>
+
+            <!-- Start / Game Over Overlay -->
+            <div id="gameOverlay" class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
+              <div class="w-16 h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-3xl mb-3">
+                <i class="fa-solid fa-person-skating"></i>
+              </div>
+              <h3 id="overlayTitle" class="font-display text-2xl font-extrabold text-white mb-1">3D Skatepark Ready!</h3>
+              <p id="overlayDesc" class="text-slate-300 text-xs sm:text-sm max-w-md mb-5">
+                Visitors get a 10-second free 3D run! Switch across 3 lanes, Ollie over cones, grind steel rails, and collect golden wheels.
+              </p>
+              <button onclick="event.stopPropagation(); startSkateGame();" class="btn-3d px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm flex items-center gap-2">
+                <i class="fa-solid fa-play"></i>
+                <span id="overlayBtnText">Launch 10s Free 3D Trial</span>
+              </button>
+            </div>
+
+            <!-- LOCKED PAYWALL OVERLAY (Appears when 10s trial expires for non-paid visitors) -->
+            <div id="gameLockedOverlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
+              <div class="w-14 h-14 rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 text-2xl mb-3 animate-bounce">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <h3 class="font-display text-xl sm:text-2xl font-extrabold text-white mb-1">10-Second Free Trial Complete!</h3>
+              <p class="text-slate-300 text-xs sm:text-sm max-w-md mb-4">
+                Unlock 24 Hours of Unlimited 3D Skating &amp; Pro Tutorials for just <strong class="text-amber-400">₹1/day</strong> via Cashfree Payment Form.
+              </p>
+              <div class="flex flex-wrap items-center justify-center gap-3">
+                <button onclick="event.stopPropagation(); openPaywallModal();" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm shadow-lg flex items-center gap-2">
+                  <i class="fa-solid fa-indian-rupee-sign"></i>
+                  <span>Pay ₹1 via Cashfree (24h Pass)</span>
+                </button>
+                <button onclick="event.stopPropagation(); openAuthModal('admin');" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700">
+                  Admin Login
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile Category Scroller -->
+    <div class="flex lg:hidden items-center gap-2 overflow-x-auto pb-3 mb-4">
+      <button onclick="filterCategory('All')" class="cat-btn active-cat px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-900 text-white whitespace-nowrap" data-cat="All">All Lessons</button>
+      <button onclick="filterCategory('Balance & Stance')" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-700 whitespace-nowrap" data-cat="Balance & Stance">Balance &amp; Stance</button>
+      <button onclick="filterCategory('Stopping & Braking')" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-700 whitespace-nowrap" data-cat="Stopping & Braking">Stopping &amp; Braking</button>
+      <button onclick="filterCategory('Ollie & Street Tricks')" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-700 whitespace-nowrap" data-cat="Ollie & Street Tricks">Ollie &amp; Tricks</button>
+      <button onclick="filterCategory('Bowl & Ramp Carving')" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-700 whitespace-nowrap" data-cat="Bowl & Ramp Carving">Bowl &amp; Carving</button>
+    </div>
+
+    <!-- BLOGGER TWO-COLUMN LAYOUT: MAIN POSTS FEED (8 COLS) + SIDEBAR (4 COLS) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- Left / Main Blogger Feed -->
+      <div class="lg:col-span-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <h2 class="font-display text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-book-open text-orange-500"></i>
+              <span id="feedHeadingTitle">Latest Skating Tutorials &amp; Guides</span>
+            </h2>
+            <p class="text-xs text-slate-500">Step-by-step coaching curated by SkateFlow Instructors</p>
+          </div>
+          <!-- Search Input -->
+          <div class="relative w-full sm:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="searchPostsInput" oninput="renderBlogPosts()" placeholder="Search tricks, stance..." class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" />
+          </div>
+        </div>
+
+        <!-- IN-FEED NATIVE AD BANNER SLOT -->
+        <div id="adWrapperInFeed" class="bg-white rounded-2xl border border-slate-200 p-3 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">In-Feed Native Ad • Slot #2</span>
+            <span class="text-[10px] text-orange-600 font-semibold">AdMob Ready</span>
+          </div>
+          <div id="adSlotInFeed" class="rounded-xl overflow-hidden ad-slot-box border border-dashed border-slate-300">
+            <div class="p-4 bg-amber-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-extrabold text-lg shrink-0">
+                  ₹1
+                </div>
+                <div>
+                  <h4 class="text-sm font-extrabold text-slate-900">24-Hour All-Access Skating Pass — Only ₹1/Day!</h4>
+                  <p class="text-xs text-slate-600">Pay once via Cashfree for 24 hours of full HD tutorials &amp; unlimited game runs. Renew daily anytime.</p>
+                </div>
+              </div>
+              <button onclick="openPaywallModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold whitespace-nowrap transition">
+                Pay ₹1 Now
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Blog Posts List Container -->
+        <div id="blogPostsContainer" class="space-y-6">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Right Blogger Sidebar (4 Cols) -->
+      <aside class="lg:col-span-4 space-y-6">
+        
+        <!-- Daily Pass Status Widget -->
+        <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 shadow-md border border-slate-700">
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
+              <i class="fa-solid fa-ticket mr-1"></i> DAILY PASS SYSTEM
+            </span>
+            <span class="text-xs font-bold text-amber-400">₹1 / 24 Hrs</span>
+          </div>
+          <h3 class="font-display text-lg font-extrabold mb-1" id="sidebarStatusTitle">Free Visitor Preview</h3>
+          <p class="text-xs text-slate-300 leading-relaxed mb-4" id="sidebarStatusDesc">
+            Visitors get 10 seconds of free simulator time and lesson previews. Unlock 24-hour full access for just ₹1 via Cashfree.
+          </p>
+          <div id="sidebarCountdownBox" class="hidden mb-4 p-3 rounded-xl bg-slate-950/70 border border-slate-700 text-xs">
+            <div class="text-slate-400 mb-0.5">Pass Expires In:</div>
+            <div id="passRemainingTimer" class="font-display font-bold text-base text-emerald-400">23h 59m 59s</div>
+          </div>
+          <button onclick="openPaywallModal()" id="sidebarPayBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition">
+            <i class="fa-solid fa-bolt"></i>
+            <span>Unlock 1-Day Pass (₹1 Cashfree)</span>
+          </button>
+        </div>
+
+        <!-- SIDEBAR RECTANGLE AD SLOT (300x250 AdMob / Banner) -->
+        <div id="adWrapperSidebar" class="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sidebar Ad (300x250)</span>
+            <span class="text-[10px] text-slate-400">Slot #3</span>
+          </div>
+          <div id="adSlotSidebar" class="min-h-[220px] rounded-2xl overflow-hidden ad-slot-box border border-dashed border-slate-300 flex items-center justify-center">
+            <div class="p-5 text-center bg-gradient-to-b from-orange-50 to-amber-50 w-full h-full flex flex-col items-center justify-center">
+              <div class="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-xl mb-3 shadow">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <h4 class="font-display font-extrabold text-slate-900 text-base mb-1">Skate Safety Starter Kit</h4>
+              <p class="text-xs text-slate-600 mb-4">Helmets, wrist guards &amp; knee pads recommended for beginners.</p>
+              <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-[11px] font-bold text-slate-700">
+                Custom AdMob / HTML Slot
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D Game High Score Leaderboard Widget -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-display font-extrabold text-base text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-trophy text-amber-500"></i>
+              <span>3D Skatepark Leaderboard</span>
+            </h3>
+            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800">Top Riders</span>
+          </div>
+          <div id="leaderboardList" class="space-y-2 text-xs">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+
+        <!-- Blogger Labels / Categories Widget -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="font-display font-extrabold text-base text-slate-900 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-tags text-orange-500"></i>
+            <span>Blogger Labels</span>
+          </h3>
+          <div id="sidebarLabelsList" class="flex flex-wrap gap-2">
+            <!-- Dynamically rendered with post counts -->
+          </div>
+        </div>
+
+        <!-- Blogger Archive / Academy Stats -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="font-display font-extrabold text-base text-slate-900 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-award text-amber-500"></i>
+            <span>Academy Quick Stats</span>
+          </h3>
+          <ul class="space-y-2.5 text-xs text-slate-600">
+            <li class="flex items-center justify-between py-1.5 border-b border-slate-100">
+              <span>Published Tutorials</span>
+              <strong id="statTotalPosts" class="text-slate-900">4 Lessons</strong>
+            </li>
+            <li class="flex items-center justify-between py-1.5 border-b border-slate-100">
+              <span>Free Trial Mode</span>
+              <strong class="text-amber-600">10 Seconds</strong>
+            </li>
+            <li class="flex items-center justify-between py-1.5 border-b border-slate-100">
+              <span>Daily Unlimited Pass</span>
+              <strong class="text-emerald-600">₹1 / Day (Cashfree)</strong>
+            </li>
+            <li class="flex items-center justify-between py-1.5">
+              <span>CMS Engine</span>
+              <strong class="text-orange-600">Blogger Pro v2.6</strong>
+            </li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: ADMIN BLOGGER CMS DASHBOARD (ONLY ACCESSIBLE TO LAKHILOHIA)    -->
+  <!-- ===================================================================== -->
+  <section id="adminDashboardView" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Admin Header Banner -->
+    <div class="bg-slate-900 text-white rounded-3xl p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-slate-800">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center text-2xl font-bold shadow">
+          <i class="fa-brands fa-blogger-b"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-display text-xl sm:text-2xl font-extrabold">Blogger Admin Studio</h1>
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+              ADMIN: LAKHILOHIA (FEE EXEMPT)
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Manage skating tutorials, inject AdMob/AdSense banner HTML, and customize theme UI.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="switchMainView('blog')" class="px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs flex items-center gap-2 transition">
+          <i class="fa-solid fa-eye"></i>
+          <span>View Live Blog</span>
+        </button>
+        <button onclick="logoutUser()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-2 transition">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Admin Navigation Tabs -->
+    <div class="flex flex-wrap items-center gap-2 mb-6 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+      <button onclick="switchAdminTab('posts')" id="tabBtnPosts" class="admin-tab-btn px-4 py-2.5 rounded-xl text-xs font-extrabold bg-orange-600 text-white flex items-center gap-2 transition">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>Posts &amp; Lessons Manager</span>
+      </button>
+      <button onclick="switchAdminTab('ads')" id="tabBtnAds" class="admin-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition">
+        <i class="fa-solid fa-rectangle-ad"></i>
+        <span>AdMob &amp; Banner Ad Code</span>
+      </button>
+      <button onclick="switchAdminTab('hermes')" id="tabBtnHermes" class="admin-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Hermes / Custom Endpoint Sync</span>
+      </button>
+      <button onclick="switchAdminTab('theme')" id="tabBtnTheme" class="admin-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition">
+        <i class="fa-solid fa-code"></i>
+        <span>HTML Customizer &amp; AI Studio Prompt</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: BLOGGER POSTS & LESSONS MANAGER -->
+    <div id="adminTabPosts" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Create / Edit Post Form (5 Cols) -->
+      <div class="lg:col-span-5 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm h-fit">
+        <h2 id="postFormTitle" class="font-display text-lg font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-plus-circle text-orange-600"></i>
+          <span>Publish New Skating Lesson</span>
+        </h2>
+        <form id="adminPostForm" onsubmit="saveBlogPost(event)" class="space-y-4">
+          <input type="hidden" id="editPostId" value="" />
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Lesson / Post Title *</label>
+            <input type="text" id="postTitleInput" required placeholder="e.g., How to Land Your First Clean Kickflip" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Category Label *</label>
+              <select id="postCategoryInput" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                <option value="Balance & Stance">Balance &amp; Stance</option>
+                <option value="Stopping & Braking">Stopping &amp; Braking</option>
+                <option value="Ollie & Street Tricks">Ollie &amp; Street Tricks</option>
+                <option value="Bowl & Ramp Carving">Bowl &amp; Ramp Carving</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Difficulty Level *</label>
+              <select id="postDifficultyInput" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Pro Level">Pro Level</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Cover Image URL (Optional)</label>
+            <input type="url" id="postImageInput" placeholder="https://images.unsplash.com/..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Free Preview Summary *</label>
+            <textarea id="postSummaryInput" rows="2" required placeholder="Short summary visible to all visitors..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Full Pro Coaching Content (Unlocked with ₹1 Pass) *</label>
+            <textarea id="postContentInput" rows="5" required placeholder="Detailed step-by-step foot placement, pop timing, and practice drills..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+          </div>
+          <div class="flex items-center gap-2 pt-2">
+            <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs sm:text-sm shadow transition">
+              <i class="fa-solid fa-paper-plane mr-1"></i> <span id="savePostBtnText">Publish Post</span>
+            </button>
+            <button type="button" id="cancelEditBtn" onclick="resetPostForm()" class="hidden py-3 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Existing Posts List (7 Cols) -->
+      <div class="lg:col-span-7 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-lg font-extrabold text-slate-900">Published Blogger Posts</h2>
+          <span id="adminPostsCountBadge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">4 Posts</span>
+        </div>
+        <div id="adminPostsList" class="space-y-3">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: ADMOB & BANNER AD CODE INJECTOR -->
+    <div id="adminTabAds" class="hidden bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+      <div class="max-w-4xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="font-display text-xl font-extrabold text-slate-900">AdMob / Google AdSense / Custom Banner HTML Manager</h2>
+            <p class="text-xs text-slate-500 mt-1">Paste your Google AdMob web ad unit, AdSense `&lt;ins&gt;` tag, or custom HTML banner code below, or toggle ad visibility across the site.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 cursor-pointer text-xs font-bold text-slate-800">
+              <input type="checkbox" id="adsEnabledToggle" checked onchange="toggleAdsVisibility()" class="accent-orange-600 w-4 h-4 rounded" />
+              <span>Show Banner Ads Live</span>
+            </label>
+            <button onclick="resetDefaultAds()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+              Reset Defaults
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+          <!-- Slot 1 -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <label class="block text-xs font-extrabold text-slate-800 mb-1">1. Top Leaderboard Banner HTML (728x90)</label>
+            <textarea id="adInputTop" rows="4" placeholder="<!-- Paste AdMob / AdSense / Banner HTML here -->" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+          </div>
+          <!-- Slot 2 -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <label class="block text-xs font-extrabold text-slate-800 mb-1">2. In-Feed Native Banner HTML</label>
+            <textarea id="adInputInFeed" rows="4" placeholder="<!-- Paste In-Feed AdMob / Banner HTML here -->" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+          </div>
+          <!-- Slot 3 -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <label class="block text-xs font-extrabold text-slate-800 mb-1">3. Sidebar Rectangle Banner HTML (300x250)</label>
+            <textarea id="adInputSidebar" rows="4" placeholder="<!-- Paste 300x250 AdMob / Banner HTML here -->" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+          </div>
+          <!-- Slot 4 -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <label class="block text-xs font-extrabold text-slate-800 mb-1">4. Footer Banner Ad HTML</label>
+            <textarea id="adInputFooter" rows="4" placeholder="<!-- Paste Footer Banner Ad HTML here -->" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+          </div>
+        </div>
+
+        <div class="mt-5 flex items-center gap-3">
+          <button onclick="saveAdCodes()" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm shadow transition flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save &amp; Publish Live Ad Banners</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: HERMES / CUSTOM ENDPOINT AUTO-SYNC CONFIGURATION -->
+    <div id="adminTabHermes" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-7 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+              <i class="fa-solid fa-satellite-dish"></i> Zero-Click Webhook Auto-Sync
+            </div>
+            <h2 class="font-display text-lg sm:text-xl font-extrabold text-slate-900">Hermes / Custom Payment Verification Endpoint</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Connect your Hermes Agent, Cloudflare Worker, n8n, or Node.js Cashfree webhook URL so payments auto-sync &amp; unlock 24h access automatically.</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 pt-2">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Custom Endpoint / Hermes Webhook URL</label>
+            <input type="url" id="hermesEndpointUrlInput" placeholder="https://hermes-webhook.yourdomain.com/api/verify-cashfree" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <p class="text-[11px] text-slate-400 mt-1">App sends <code class="text-slate-600">GET ?user_id=...&amp;session_id=...</code> and expects JSON <code class="text-emerald-700">{"paid": true, "order_id": "..."}</code>.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Optional Bearer Token / API Secret</label>
+              <input type="password" id="hermesApiKeyInput" placeholder="hms_live_xxxxxxxxxxxx" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Poll Interval (Sec)</label>
+              <input type="number" id="hermesPollIntervalInput" min="2" max="30" value="3" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <label class="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer">
+              <input type="checkbox" id="hermesAutoSyncToggle" checked class="accent-indigo-600 w-4 h-4 mt-0.5 rounded" />
+              <div class="text-xs">
+                <div class="font-extrabold text-slate-900">Auto-Sync via Hermes Endpoint</div>
+                <div class="text-[11px] text-slate-500">Poll endpoint automatically after Cashfree click</div>
+              </div>
+            </label>
+            <label class="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer">
+              <input type="checkbox" id="hermesUrlCallbackToggle" checked class="accent-emerald-600 w-4 h-4 mt-0.5 rounded" />
+              <div class="text-xs">
+                <div class="font-extrabold text-slate-900">Auto-Approve Return URL Params</div>
+                <div class="text-[11px] text-slate-500">Detect <code class="text-slate-700">?payment_status=SUCCESS</code> &amp; cross-tab sync</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-3 flex flex-wrap items-center gap-3">
+          <button onclick="saveHermesConfig()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow transition flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save Hermes Endpoint Settings</span>
+          </button>
+          <button onclick="testHermesEndpoint()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center gap-2">
+            <i class="fa-solid fa-vial"></i>
+            <span>Ping Live Endpoint</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Hermes Sync Simulator & Payload Spec (5 Cols) -->
+      <div class="lg:col-span-5 bg-slate-900 text-white rounded-3xl p-6 shadow-sm border border-slate-800 flex flex-col justify-between space-y-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-bold mb-2">
+            <i class="fa-solid fa-wave-square"></i>
+            <span>LIVE WEBHOOK SYNC DIAGNOSTICS</span>
+          </div>
+          <h3 class="font-display text-lg font-extrabold mb-1">Test Zero-Click Payment Sync</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mb-3">
+            Simulate an instant Hermes / Cashfree webhook confirmation to preview how visitors automatically unlock 24-hour hassle-free play without typing any order ID.
+          </p>
+
+          <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-slate-300 space-y-1.5">
+            <div class="text-slate-500">// Expected JSON from Hermes Endpoint:</div>
+            <div class="text-emerald-400">{</div>
+            <div class="pl-3">"status": "SUCCESS",</div>
+            <div class="pl-3">"paid": true,</div>
+            <div class="pl-3">"order_id": "CF_HERMES_98214",</div>
+            <div class="pl-3">"valid_hours": 24</div>
+            <div class="text-emerald-400">}</div>
+          </div>
+
+          <div id="hermesDiagnosticLog" class="mt-3 p-3 rounded-xl bg-slate-800/70 border border-slate-700 text-[11px] text-slate-300 font-mono">
+            Status: Ready • Listening for Cashfree Return URL, Cross-Tab Storage &amp; Custom Endpoint.
+          </div>
+        </div>
+
+        <button onclick="simulateHermesWebhookPush()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Simulate Hermes Webhook Push (Auto-Unlock 24h)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 4: HTML THEME CUSTOMIZER & GOOGLE AI STUDIO SHORT PROMPT -->
+    <div id="adminTabTheme" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- HTML Top Bar & Hero UI Customizer (7 Cols) -->
+      <div class="lg:col-span-7 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div>
+          <h2 class="font-display text-lg font-extrabold text-slate-900 mb-1">Live HTML / UI Theme Customizer</h2>
+          <p class="text-xs text-slate-500">Customize the top announcement bar HTML, 3D Arena hero headline, and primary Blogger accent theme in real time.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Top Bar Announcement HTML</label>
+          <textarea id="customTopHtmlInput" rows="3" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs bg-slate-50 focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">3D Arena Hero Headline</label>
+            <input type="text" id="customHeroHeadlineInput" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Accent Theme Color</label>
+            <select id="customAccentThemeInput" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none">
+              <option value="orange">Blogger Orange (#FF5722)</option>
+              <option value="emerald">Emerald Skate (#10B981)</option>
+              <option value="indigo">Electric Indigo (#6366F1)</option>
+              <option value="rose">Crimson Street (#F43F5E)</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="saveCustomHtmlTheme()" class="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs shadow transition">
+          <i class="fa-solid fa-code mr-1"></i> Apply HTML &amp; UI Changes
+        </button>
+      </div>
+
+      <!-- Short Prompt for Google AI Studio (5 Cols) -->
+      <div class="lg:col-span-5 bg-slate-900 text-white rounded-3xl p-6 shadow-sm border border-slate-800 flex flex-col justify-between">
+        <div>
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-400/20 text-amber-300 text-[11px] font-bold mb-3">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>GOOGLE AI STUDIO PROMPT</span>
+          </div>
+          <h3 class="font-display text-lg font-extrabold mb-2">Short Prompt (Ready to Copy)</h3>
+          <p class="text-xs text-slate-400 mb-3">Use this concise prompt in Google AI Studio to recreate or extend this exact Blogger Skating Portal:</p>
+          <div id="aiStudioPromptText" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-200 font-mono leading-relaxed select-all">
+Build a single-file Blogger-style Skating Learning Website &amp; HTML5 Canvas Skate Game. Include Dual Login: Admin (LAKHILOHIA / Lohia@2026, fee-exempt with Blogger CMS to add/edit posts, inject AdMob/Banner HTML ads, &amp; edit HTML UI) and Visitor Login. Give visitors a 10-second free game/lesson trial, then lock behind a ₹1/day (24h) paywall linking to https://payments.cashfree.com/forms/LAKHI with daily renewal.
+          </div>
+        </div>
+        <button onclick="copyAiPrompt()" class="mt-4 w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 transition">
+          <i class="fa-solid fa-copy"></i>
+          <span>Copy Google AI Studio Prompt</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER BANNER AD SLOT & FOOTER -->
+  <footer class="bg-white border-t border-slate-200 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div id="adWrapperFooter" class="rounded-2xl border border-slate-200 p-2 bg-slate-50 mb-6">
+        <div class="flex items-center justify-between px-2 pb-1">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Footer Banner Ad • Slot #4</span>
+          <span class="text-[10px] text-slate-400">AdMob / Responsive Banner</span>
+        </div>
+        <div id="adSlotFooter" class="min-h-[64px] rounded-xl overflow-hidden ad-slot-box border border-dashed border-slate-300 flex items-center justify-center">
+          <div class="py-3 px-4 text-center text-xs text-slate-600 font-medium">
+            🛹 <strong>SkateFlow Partner Network:</strong> Custom Footer Ad Slot Ready — Configure in Admin Blogger CMS.
+          </div>
+        </div>
+      </div>
+
+      <div class="py-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div class="flex items-center gap-2">
+          <span class="font-display font-extrabold text-slate-900 text-sm">SkateFlow Academy</span>
+          <span>• Powered by Blogger CMS Architecture</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <button onclick="openPaywallModal()" class="hover:text-orange-600 font-semibold">₹1/Day Pass</button>
+          <button onclick="openAuthModal('visitor')" class="hover:text-orange-600 font-semibold">Visitor Login</button>
+          <button onclick="openAuthModal('admin')" class="hover:text-orange-600 font-semibold">Admin CMS</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: DUAL LOGIN MODAL (ADMIN vs VISITOR)                          -->
+  <!-- ===================================================================== -->
+  <div id="authModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 animate-fadeIn">
+      <!-- Modal Header -->
+      <div class="bg-slate-900 text-white p-5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center text-white">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-extrabold text-base">SkateFlow Dual Portal</h3>
+            <p class="text-[11px] text-slate-400">Choose Visitor Access or Admin Blogger CMS</p>
+          </div>
+        </div>
+        <button onclick="closeAuthModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Dual Tabs -->
+      <div class="grid grid-cols-2 bg-slate-100 p-1.5 m-4 rounded-xl">
+        <button onclick="switchAuthTab('visitor')" id="authTabVisitor" class="py-2 rounded-lg text-xs font-extrabold bg-white text-slate-900 shadow-sm transition">
+          <i class="fa-solid fa-person-skating mr-1 text-amber-500"></i> Visitor Login
+        </button>
+        <button onclick="switchAuthTab('admin')" id="authTabAdmin" class="py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+          <i class="fa-brands fa-blogger-b mr-1 text-orange-600"></i> Admin Login
+        </button>
+      </div>
+
+      <!-- Visitor Form -->
+      <form id="visitorLoginForm" onsubmit="handleVisitorLogin(event)" class="px-6 pb-6 space-y-4">
+        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+          <strong>Visitor Benefits:</strong> Enjoy a <strong>10-second free trial</strong> of our Skate Simulator &amp; lesson previews. Unlock 24h full access anytime for just <strong>₹1/day</strong>.
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Skater Name *</label>
+          <input type="text" id="visitorNameInput" required placeholder="Enter your name" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Email or Mobile ID *</label>
+          <input type="text" id="visitorEmailInput" required placeholder="skater@example.com" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm shadow transition">
+          Continue as Visitor
+        </button>
+      </form>
+
+      <!-- Admin Form -->
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" class="hidden px-6 pb-6 space-y-4">
+        <div class="p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-orange-900">
+          <strong>Blogger Admin Access:</strong> Fee-exempt unlimited play, post publishing, and AdMob HTML banner control.
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Admin Username</label>
+          <input type="text" id="adminUserInput" required placeholder="Enter Admin Username" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Admin Password</label>
+          <input type="password" id="adminPassInput" required placeholder="••••••••••" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm shadow transition">
+          Login to Blogger Admin CMS
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: ₹1/DAY CASHFREE PAYMENT & 24-HOUR UNLOCK MODAL               -->
+  <!-- ===================================================================== -->
+  <div id="paywallModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="bg-gradient-to-r from-orange-600 to-amber-500 text-white p-6 flex items-center justify-between">
+        <div>
+          <span class="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-extrabold uppercase tracking-wider">Daily Skater Pass</span>
+          <h3 class="font-display text-2xl font-extrabold mt-1">Unlock 1-Day Pass for ₹1</h3>
+        </div>
+        <button onclick="closePaywallModal()" class="w-8 h-8 rounded-lg bg-black/20 hover:bg-black/30 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <div class="flex items-start gap-3.5 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+          <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shrink-0 font-extrabold">
+            ₹1
+          </div>
+          <div class="text-xs text-slate-600 leading-relaxed">
+            <p class="font-bold text-slate-900 text-sm mb-0.5">24-Hour Hassle-Free Auto-Sync Pass</p>
+            Pay just <strong>₹1</strong> via Cashfree. Our <strong>Hermes Auto-Sync</strong> detects your payment automatically in the background and unlocks <strong>24 hours</strong> of unlimited 3D skating &amp; tutorials with zero manual steps!
+          </div>
+        </div>
+
+        <!-- Step 1: Open Cashfree Payment Form & Start Auto-Sync -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Instant Cashfree + Auto-Sync</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
+              <i class="fa-solid fa-satellite-dish"></i> Hermes Sync Ready
+            </span>
+          </div>
+          <a href="https://payments.cashfree.com/forms/LAKHI" target="_blank" rel="noopener noreferrer" onclick="startAutomaticPaymentSync()" class="w-full py-3.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-md flex items-center justify-center gap-2 transition">
+            <span>Pay ₹1 Now via Cashfree (Auto-Unlocks 24h)</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+          </a>
+          <p class="text-[11px] text-slate-500 text-center">Opens <span class="underline">payments.cashfree.com/forms/LAKHI</span> • App auto-syncs as soon as payment completes.</p>
+        </div>
+
+        <!-- Live Auto-Sync Status Indicator (Appears automatically after clicking Cashfree) -->
+        <div id="autoSyncStatusBanner" class="hidden p-4 rounded-2xl bg-indigo-50 border border-indigo-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 text-indigo-900 font-extrabold text-xs">
+              <i class="fa-solid fa-circle-notch fa-spin text-indigo-600"></i>
+              <span id="autoSyncHeadline">Auto-Syncing Payment with Hermes Endpoint...</span>
+            </div>
+            <span id="autoSyncPulseBadge" class="px-2 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-bold">LIVE SYNC</span>
+          </div>
+          <p id="autoSyncSubStatus" class="text-[11px] text-indigo-700 leading-relaxed">
+            Apne aap sync ho raha hai — complete your ₹1 payment in the Cashfree tab and return here. Your 1-day pass will unlock automatically!
+          </p>
+        </div>
+
+        <!-- Subtle Manual Fallback Toggle -->
+        <div class="pt-2 border-t border-slate-100 text-center">
+          <button type="button" onclick="toggleManualRefFallback()" class="text-[11px] font-semibold text-slate-400 hover:text-slate-600 underline transition">
+            Endpoint offline? Enter Cashfree Reference ID manually
+          </button>
+          <form id="manualRefFallbackForm" onsubmit="activateDailyPass(event)" class="hidden mt-3 space-y-2 text-left">
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input type="text" id="cashfreeRefInput" required minlength="6" placeholder="Enter Cashfree Ref / UTR ID (e.g., CF-892341)" class="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+              <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs whitespace-nowrap transition">
+                Unlock Now
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: FULL LESSON READER MODAL                                     -->
+  <!-- ===================================================================== -->
+  <div id="lessonModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200">
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2">
+          <span id="modalPostCategory" class="px-2.5 py-1 rounded-lg bg-orange-100 text-orange-700 text-xs font-bold">Category</span>
+          <span id="modalPostDifficulty" class="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold">Beginner</span>
+        </div>
+        <button onclick="closeLessonModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="lessonModalBody" class="p-6 overflow-y-auto space-y-4">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT APPLICATION LOGIC                                          -->
+  <!-- ===================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. STATE & CONSTANTS
+    // =========================================================================
+    const ADMIN_USER = "LAKHILOHIA";
+    const ADMIN_PASS = "Lohia@2026";
+    const TRIAL_DURATION_SECONDS = 10.0;
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    // Default initial skating blog lessons
+    const DEFAULT_POSTS = [
+      {
+        id: "post-1",
+        title: "Day 1: Finding Your Stance (Regular vs. Goofy) & Board Balance",
+        category: "Balance & Stance",
+        difficulty: "Beginner",
+        date: "Nov 24, 2026",
+        author: "Coach Lakhi (Admin)",
+        image: "https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?auto=format&fit=crop&w=900&q=80",
+        summary: "Before rolling an inch, learn whether your left or right foot leads and master stationary balance drills on grass or carpet.",
+        content: "1. THE PUSH TEST: Stand straight and have a friend gently nudge you forward. Whichever foot steps out first to catch your balance is usually your front foot.\n\n2. BOLT ALIGNMENT: Place your front foot directly behind the front truck bolts angled at 45 degrees. Place your back foot perpendicular across the tail.\n\n3. KNEE BEND & CENTER OF GRAVITY: Keep your knees slightly bent and shoulders aligned parallel with the deck. Practice shifting weight toe-side and heel-side for 10 minutes before stepping onto smooth concrete."
+      },
+      {
+        id: "post-2",
+        title: "Stopping & Braking Safely: Heel Brake, Foot Drag & Powerslide",
+        category: "Stopping & Braking",
+        difficulty: "Beginner",
+        date: "Nov 23, 2026",
+        author: "Coach Lakhi (Admin)",
+        image: "https://images.unsplash.com/photo-1534531173927-aeb928d543c5?auto=format&fit=crop&w=900&q=80",
+        summary: "Never bomb a hill until you can stop on command. Master the controlled sole-drag and transition into a stylish backside powerslide.",
+        content: "1. CONTROLLED FOOT DRAG: Shift 85% of your weight onto your front foot, bend your front knee deeply, and lightly feather the flat sole of your back shoe against the pavement until speed scrubs off.\n\n2. TAIL SCRAPE (BEGINNER): Gently press the tail down while keeping your front foot over the bolts—use sparingly to preserve board pop.\n\n3. BACKSIDE POWERSLIDE: De-weight your body slightly, rotate your shoulders 90 degrees, and push both heels out simultaneously so all four wheels slide perpendicular across smooth concrete."
+      },
+      {
+        id: "post-3",
+        title: "How to Ollie Higher: Pop, Slide & Level-Out Breakdown",
+        category: "Ollie & Street Tricks",
+        difficulty: "Intermediate",
+        date: "Nov 22, 2026",
+        author: "Coach Lakhi (Admin)",
+        image: "https://images.unsplash.com/photo-1564982752979-3f7bc974d29a?auto=format&fit=crop&w=900&q=80",
+        summary: "The Ollie is the gateway to every street trick. Learn the exact ankle snap and front-foot slide timing to clear curbs cleanly.",
+        content: "1. FOOT SETUP: Place the ball of your back foot on the tip of the tail. Place your front foot just below the middle of the board.\n\n2. THE SNAP (POP): Jump upward off both feet while snapping your back ankle down so the tail strikes the ground crisp and fast.\n\n3. THE SLIDE: As the nose rises, roll your front ankle inward and drag the side of your skate shoe up toward the nose bolts. This levels the board mid-air!\n\n4. LANDING: Suck your knees up toward your chest, spot the bolts, and absorb the landing with bent knees."
+      },
+      {
+        id: "post-4",
+        title: "Bowl & Ramp Carving: Pumping Transitions & Kickturns",
+        category: "Bowl & Ramp Carving",
+        difficulty: "Pro Level",
+        date: "Nov 20, 2026",
+        author: "Coach Lakhi (Admin)",
+        image: "https://images.unsplash.com/photo-1547447134-cd3f5c716030?auto=format&fit=crop&w=900&q=80",
+        summary: "Generate effortless speed inside concrete bowls without pushing by pumping through transitions and executing smooth backside kickturns.",
+        content: "1. PUMPING THE TRANSITION: Compress your knees as you enter the bottom flat of the ramp, then extend upward forcefully as your wheels climb the curved transition.\n\n2. BACKSIDE KICKTURN: At the peak of your roll-up, lift the front wheels slightly off the concrete, lead with your head and shoulders, and pivot 180 degrees around the rear truck.\n\n3. HIGH-LINE CARVING: Lean into the bowl wall at a 45-degree angle while keeping knees bent to hold grip around tight corners."
+      }
+    ];
+
+    const DEFAULT_LEADERBOARD = [
+      { name: "Lakhi Lohia (Pro)", score: 1450, badge: "ADMIN" },
+      { name: "Aarav_Skates", score: 980, badge: "24H PASS" },
+      { name: "RiyaOnWheels", score: 740, badge: "24H PASS" },
+      { name: "StreetOllie99", score: 520, badge: "SKATER" }
+    ];
+
+    // App State
+    let currentUser = null; // { role: 'admin' | 'visitor', name: string, id: string }
+    let posts = [];
+    let leaderboard = [];
+    let selectedCategory = "All";
+    let trialSecondsLeft = TRIAL_DURATION_SECONDS;
+    let trialExpired = false;
+    let dailyPassExpiry = 0; // timestamp in ms
+    let adCodes = { top: "", inFeed: "", sidebar: "", footer: "" };
+    let adsEnabled = true;
+    let themeSettings = {
+      topHtml: "",
+      heroHeadline: "Master 3D Street Flow, Ollies & Rail Grinds",
+      accent: "orange"
+    };
+    let hermesConfig = {
+      endpointUrl: "",
+      apiKey: "",
+      pollIntervalSec: 3,
+      autoSyncEnabled: true,
+      urlCallbackEnabled: true
+    };
+    let paymentSyncTimer = null;
+    let visitorSessionId = "";
+
+    // =========================================================================
+    // 2. INITIALIZATION & STORAGE SYNC
+    // =========================================================================
+    function initApp() {
+      // Unique visitor session ID for Hermes webhook correlation
+      visitorSessionId = localStorage.getItem("sf_session_id_v1");
+      if (!visitorSessionId) {
+        visitorSessionId = "SKATE-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        localStorage.setItem("sf_session_id_v1", visitorSessionId);
+      }
+
+      // Load posts
+      const savedPosts = localStorage.getItem("sf_posts_v1");
+      posts = savedPosts ? JSON.parse(savedPosts) : [...DEFAULT_POSTS];
+
+      // Load leaderboard
+      const savedLb = localStorage.getItem("sf_leaderboard_v1");
+      leaderboard = savedLb ? JSON.parse(savedLb) : [...DEFAULT_LEADERBOARD];
+
+      // Load user session
+      const savedUser = localStorage.getItem("sf_user_v1");
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+      }
+
+      // Load trial & 1-day pass expiry
+      const savedTrial = localStorage.getItem("sf_trial_left_v1");
+      if (savedTrial !== null) {
+        trialSecondsLeft = Math.max(0, parseFloat(savedTrial));
+        if (trialSecondsLeft <= 0) trialExpired = true;
+      }
+
+      const savedPassExpiry = localStorage.getItem("sf_pass_expiry_v1");
+      if (savedPassExpiry) {
+        dailyPassExpiry = parseInt(savedPassExpiry, 10);
+      }
+
+      // Load custom AdMob / Banner HTML slots & visibility
+      const savedAds = localStorage.getItem("sf_ads_v1");
+      if (savedAds) {
+        adCodes = JSON.parse(savedAds);
+        applyAdCodesToDom();
+      }
+      const savedAdsEnabled = localStorage.getItem("sf_ads_enabled_v1");
+      if (savedAdsEnabled !== null) {
+        adsEnabled = savedAdsEnabled === "true";
+        document.getElementById("adsEnabledToggle").checked = adsEnabled;
+        toggleAdsVisibility(false);
+      }
+
+      // Load Theme / HTML customizer settings
+      const savedTheme = localStorage.getItem("sf_theme_v1");
+      if (savedTheme) {
+        themeSettings = { ...themeSettings, ...JSON.parse(savedTheme) };
+        if (themeSettings.topHtml) {
+          document.getElementById("customTopHtmlSlot").innerHTML = themeSettings.topHtml;
+        }
+        if (themeSettings.heroHeadline) {
+          document.getElementById("heroHeadlineText").textContent = themeSettings.heroHeadline;
+        }
+        applyAccentTheme(themeSettings.accent);
+      }
+      document.getElementById("customTopHtmlInput").value = document.getElementById("customTopHtmlSlot").innerHTML.trim();
+      document.getElementById("customHeroHeadlineInput").value = document.getElementById("heroHeadlineText").textContent.trim();
+      document.getElementById("customAccentThemeInput").value = themeSettings.accent || "orange";
+
+      // Populate Ad textareas in Admin panel
+      document.getElementById("adInputTop").value = adCodes.top || "";
+      document.getElementById("adInputInFeed").value = adCodes.inFeed || "";
+      document.getElementById("adInputSidebar").value = adCodes.sidebar || "";
+      document.getElementById("adInputFooter").value = adCodes.footer || "";
+
+      // Load Best Score
+      const bestScore = localStorage.getItem("sf_best_score_v1") || "0";
+      document.getElementById("gameBestHud").textContent = bestScore;
+
+      // Load Hermes / Custom Endpoint Settings
+      const savedHermes = localStorage.getItem("sf_hermes_config_v1");
+      if (savedHermes) {
+        hermesConfig = { ...hermesConfig, ...JSON.parse(savedHermes) };
+      }
+      document.getElementById("hermesEndpointUrlInput").value = hermesConfig.endpointUrl || "";
+      document.getElementById("hermesApiKeyInput").value = hermesConfig.apiKey || "";
+      document.getElementById("hermesPollIntervalInput").value = hermesConfig.pollIntervalSec || 3;
+      document.getElementById("hermesAutoSyncToggle").checked = hermesConfig.autoSyncEnabled !== false;
+      document.getElementById("hermesUrlCallbackToggle").checked = hermesConfig.urlCallbackEnabled !== false;
+
+      // Check URL callback parameters (?payment_status=SUCCESS / ?cf_status=paid / #paid) on load
+      checkUrlCallbackAutoSync();
+
+      // Resume background auto-sync if visitor recently clicked Cashfree
+      if (!hasUnlimitedAccess() && localStorage.getItem("sf_pending_payment_v1") === "true") {
+        startAutomaticPaymentSync(true);
+      }
+
+      // Render UI
+      updateAccessUI();
+      renderBlogPosts();
+      renderLeaderboard();
+      renderAdminPostsList();
+
+      // Start background pass expiry ticker
+      setInterval(checkDailyPassClock, 1000);
+    }
+
+    // Cross-Tab & PostMessage Auto-Sync Listeners (Zero-Click Unlock when Cashfree finishes in another tab)
+    window.addEventListener("storage", (e) => {
+      if (e.key === "sf_pass_expiry_v1" && e.newValue) {
+        const newExp = parseInt(e.newValue, 10);
+        if (newExp > Date.now() && !hasUnlimitedAccess()) {
+          completeAutoPaymentUnlock("CROSS-TAB-SYNC", "Cross-Tab Cashfree Sync");
+        }
+      }
+    });
+
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+      const isSuccess =
+        data.paid === true ||
+        data.status === "SUCCESS" ||
+        data.payment_status === "SUCCESS" ||
+        data.type === "CASHFREE_PAYMENT_SUCCESS";
+      if (isSuccess && !hasUnlimitedAccess()) {
+        completeAutoPaymentUnlock(data.order_id || data.ref_id || "HERMES-MSG", "Hermes PostMessage Webhook");
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      if (!hasUnlimitedAccess() && localStorage.getItem("sf_pending_payment_v1") === "true") {
+        pollHermesEndpointOnce();
+      }
+    });
+
+    // =========================================================================
+    // 3. ACCESS CONTROL, AUTHENTICATION & UI STATE SYNC
+    // =========================================================================
+    function hasUnlimitedAccess() {
+      if (currentUser && currentUser.role === "admin") return true;
+      if (dailyPassExpiry && Date.now() < dailyPassExpiry) return true;
+      return false;
+    }
+
+    function checkDailyPassClock() {
+      if (currentUser && currentUser.role === "admin") return;
+
+      if (dailyPassExpiry > 0) {
+        const remaining = dailyPassExpiry - Date.now();
+        if (remaining > 0) {
+          const hrs = Math.floor(remaining / (1000 * 60 * 60));
+          const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((remaining % (1000 * 60)) / 1000);
+          const formatted = `${hrs}h ${String(mins).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`;
+          const timerEl = document.getElementById("passRemainingTimer");
+          const countdownDisplay = document.getElementById("trialCountdownDisplay");
+          if (timerEl) timerEl.textContent = formatted;
+          if (countdownDisplay) countdownDisplay.textContent = formatted;
+        } else {
+          // 24-hour pass expired -> require daily renewal
+          dailyPassExpiry = 0;
+          localStorage.removeItem("sf_pass_expiry_v1");
+          trialExpired = true;
+          trialSecondsLeft = 0;
+          localStorage.setItem("sf_trial_left_v1", "0");
+          updateAccessUI();
+          renderBlogPosts();
+          showToast("Your 24-hour pass has expired! Renew for ₹1/day via Cashfree.", "warning");
+        }
+      }
+    }
+
+    function updateAccessUI() {
+      const isAdmin = currentUser && currentUser.role === "admin";
+      const isPaid = !isAdmin && dailyPassExpiry > Date.now();
+
+      const accessBadge = document.getElementById("accessBadge");
+      const accessBadgeText = document.getElementById("accessBadgeText");
+      const adminToggleBtn = document.getElementById("adminToggleBtn");
+      const userControls = document.getElementById("userControls");
+      const gameModePill = document.getElementById("gameModePill");
+      const trialCountdownDisplay = document.getElementById("trialCountdownDisplay");
+      const sessionSubtext = document.getElementById("sessionSubtext");
+      const trialProgressBar = document.getElementById("trialProgressBar");
+      const unlockBannerBtn = document.getElementById("unlockBannerBtn");
+      const overlayBtnText = document.getElementById("overlayBtnText");
+      const gameLockedOverlay = document.getElementById("gameLockedOverlay");
+      const sidebarStatusTitle = document.getElementById("sidebarStatusTitle");
+      const sidebarStatusDesc = document.getElementById("sidebarStatusDesc");
+      const sidebarCountdownBox = document.getElementById("sidebarCountdownBox");
+      const sidebarPayBtn = document.getElementById("sidebarPayBtn");
+
+      // Header User Controls
+      if (currentUser) {
+        const roleBadge = isAdmin
+          ? `<span class="px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-[10px] font-extrabold">ADMIN</span>`
+          : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">VISITOR</span>`;
+        userControls.innerHTML = `
+          <div class="flex items-center gap-2 bg-slate-100 pl-3 pr-1.5 py-1 rounded-xl border border-slate-200">
+            <span class="text-xs font-bold text-slate-800 max-w-[95px] truncate">${escapeHtml(currentUser.name)}</span>
+            ${roleBadge}
+            <button onclick="logoutUser()" title="Logout" class="w-7 h-7 rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center border border-slate-200 transition">
+              <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            </button>
+          </div>
+        `;
+      } else {
+        userControls.innerHTML = `
+          <button onclick="openAuthModal()" id="loginNavBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white transition shadow-sm">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Login</span>
+          </button>
+        `;
+      }
+
+      // Admin CMS Button visibility
+      if (isAdmin) {
+        adminToggleBtn.classList.remove("hidden");
+        adminToggleBtn.classList.add("flex");
+      } else {
+        adminToggleBtn.classList.add("hidden");
+        adminToggleBtn.classList.remove("flex");
+        document.getElementById("adminDashboardView").classList.add("hidden");
+        document.getElementById("publicBlogView").classList.remove("hidden");
+      }
+
+      // Access Tier Visual States
+      if (isAdmin) {
+        accessBadge.className = "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200";
+        accessBadgeText.textContent = "ADMIN • FEE EXEMPT";
+        gameModePill.className = "px-2 py-0.5 rounded-md text-[11px] font-bold bg-orange-500 text-white";
+        gameModePill.textContent = "ADMIN UNLIMITED";
+        trialCountdownDisplay.textContent = "∞ Unlimited";
+        sessionSubtext.textContent = "Admin Fee-Exempt Access";
+        trialProgressBar.style.width = "100%";
+        trialProgressBar.className = "h-full bg-gradient-to-r from-orange-400 to-amber-400";
+        unlockBannerBtn.classList.add("hidden");
+        overlayBtnText.textContent = "Start Unlimited Admin Run";
+        gameLockedOverlay.classList.add("hidden");
+        sidebarStatusTitle.textContent = "Admin LAKHILOHIA Active";
+        sidebarStatusDesc.textContent = "Full fee-exempt access to all 3D skatepark runs, pro tutorials, and Blogger CMS controls.";
+        sidebarCountdownBox.classList.add("hidden");
+        sidebarPayBtn.classList.add("hidden");
+      } else if (isPaid) {
+        accessBadge.className = "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200";
+        accessBadgeText.textContent = "24H PRO PASS ACTIVE";
+        gameModePill.className = "px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500 text-slate-950";
+        gameModePill.textContent = "24H PASS ACTIVE";
+        sessionSubtext.textContent = "Cashfree ₹1 Daily Pass";
+        trialProgressBar.style.width = "100%";
+        trialProgressBar.className = "h-full bg-gradient-to-r from-emerald-400 to-teal-400";
+        unlockBannerBtn.classList.add("hidden");
+        overlayBtnText.textContent = "Start Pro Pass 3D Run";
+        gameLockedOverlay.classList.add("hidden");
+        sidebarStatusTitle.textContent = "24-Hour Pro Pass Active";
+        sidebarStatusDesc.textContent = "Enjoy unlimited 3D skatepark runs and complete coaching guides for 24 hours.";
+        sidebarCountdownBox.classList.remove("hidden");
+        sidebarPayBtn.classList.add("hidden");
+        checkDailyPassClock();
+      } else {
+        // Visitor Free 10-Second Trial State
+        accessBadge.className = "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200";
+        accessBadgeText.textContent = trialExpired ? "TRIAL EXPIRED • ₹1/DAY" : `${trialSecondsLeft.toFixed(1)}s FREE TRIAL`;
+        gameModePill.className = trialExpired
+          ? "px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-500 text-white"
+          : "px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500 text-slate-950";
+        gameModePill.textContent = trialExpired ? "LOCKED" : "10s TRIAL";
+        trialCountdownDisplay.textContent = `${trialSecondsLeft.toFixed(1)}s`;
+        sessionSubtext.textContent = trialExpired ? "Pay ₹1 via Cashfree to Unlock" : "Free Visitor Preview";
+        trialProgressBar.style.width = `${(trialSecondsLeft / TRIAL_DURATION_SECONDS) * 100}%`;
+        trialProgressBar.className = "h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-100";
+        unlockBannerBtn.classList.remove("hidden");
+        sidebarStatusTitle.textContent = "Free Visitor Preview";
+        sidebarStatusDesc.textContent = "Visitors get 10 seconds of free simulator time and lesson previews. Unlock 24-hour full access for just ₹1 via Cashfree.";
+        sidebarCountdownBox.classList.add("hidden");
+        sidebarPayBtn.classList.remove("hidden");
+
+        if (trialExpired) {
+          gameLockedOverlay.classList.remove("hidden");
+          document.getElementById("gameOverlay").classList.add("hidden");
+        } else {
+          gameLockedOverlay.classList.add("hidden");
+          overlayBtnText.textContent = `Launch ${trialSecondsLeft.toFixed(1)}s Free 3D Trial`;
+        }
+      }
+    }
+
+    // Dual Login Modal Functions
+    function openAuthModal(defaultTab = "visitor") {
+      document.getElementById("authModal").classList.remove("hidden");
+      switchAuthTab(defaultTab);
+    }
+
+    function closeAuthModal() {
+      document.getElementById("authModal").classList.add("hidden");
+    }
+
+    function switchAuthTab(tab) {
+      const visitorForm = document.getElementById("visitorLoginForm");
+      const adminForm = document.getElementById("adminLoginForm");
+      const tabVisitor = document.getElementById("authTabVisitor");
+      const tabAdmin = document.getElementById("authTabAdmin");
+
+      if (tab === "admin") {
+        visitorForm.classList.add("hidden");
+        adminForm.classList.remove("hidden");
+        tabAdmin.className = "py-2 rounded-lg text-xs font-extrabold bg-white text-orange-600 shadow-sm transition";
+        tabVisitor.className = "py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition";
+      } else {
+        adminForm.classList.add("hidden");
+        visitorForm.classList.remove("hidden");
+        tabVisitor.className = "py-2 rounded-lg text-xs font-extrabold bg-white text-slate-900 shadow-sm transition";
+        tabAdmin.className = "py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition";
+      }
+    }
+
+    function handleVisitorLogin(e) {
+      e.preventDefault();
+      const name = document.getElementById("visitorNameInput").value.trim();
+      const email = document.getElementById("visitorEmailInput").value.trim();
+      if (!name || !email) return;
+
+      currentUser = { role: "visitor", name, id: email };
+      localStorage.setItem("sf_user_v1", JSON.stringify(currentUser));
+      closeAuthModal();
+      updateAccessUI();
+      renderBlogPosts();
+      showToast(`Welcome ${name}! Enjoy your 10-second free trial or unlock 24h access for ₹1.`, "success");
+    }
+
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById("adminUserInput").value.trim();
+      const pass = document.getElementById("adminPassInput").value.trim();
+
+      if (user === ADMIN_USER && pass === ADMIN_PASS) {
+        currentUser = { role: "admin", name: "LAKHILOHIA", id: "ADMIN_MASTER" };
+        localStorage.setItem("sf_user_v1", JSON.stringify(currentUser));
+        closeAuthModal();
+        updateAccessUI();
+        renderBlogPosts();
+        switchMainView("admin");
+        showToast("Admin LAKHILOHIA logged in! Fee-exempt mode & Blogger CMS unlocked.", "success");
+      } else {
+        showToast("Invalid Admin credentials. Please check username and password.", "error");
+      }
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      localStorage.removeItem("sf_user_v1");
+      switchMainView("blog");
+      updateAccessUI();
+      renderBlogPosts();
+      showToast("Logged out successfully.", "info");
+    }
+
+    // =========================================================================
+    // 4. THREE.JS 3D ENDLESS SKATEPARK RUNNER ENGINE
+    // =========================================================================
+    let scene, camera, renderer;
+    let skaterGroup, boardMesh, frontWheelL, frontWheelR, backWheelL, backWheelR;
+    let groundStripes = [];
+    let sceneryObjects = [];
+    let obstacles3D = [];
+    let collectibles3D = [];
+    let webglReady = false;
+
+    const LANES = [-2.4, 0, 2.4];
+    let currentLaneIdx = 1;
+    let gameRunning = false;
+    let gameScore = 0;
+    let gameCombo = 1;
+    let gameSpeed = 0.34;
+    let skaterY = 0;
+    let skaterVy = 0;
+    let isGrounded = true;
+    let isGrinding = false;
+    let kickflipAngle = 0;
+    let spawnAccumulator = 0;
+    let lastFrameTime = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    function initThreeEngine() {
+      const canvas = document.getElementById("skateCanvas");
+      const wrapper = document.getElementById("canvasWrapper");
+      if (!canvas || !wrapper || typeof THREE === "undefined") return;
+
+      try {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x090d16);
+        scene.fog = new THREE.Fog(0x090d16, 22, 85);
+
+        const width = wrapper.clientWidth || 640;
+        const height = wrapper.clientHeight || 380;
+        camera = new THREE.PerspectiveCamera(58, width / height, 0.1, 120);
+        camera.position.set(0, 4.4, 7.6);
+        camera.lookAt(0, 1.1, -6);
+
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffedd5, 1.1);
+        dirLight.position.set(8, 16, 10);
+        scene.add(dirLight);
+
+        const rimLight = new THREE.PointLight(0xf97316, 1.4, 30);
+        rimLight.position.set(0, 4, -8);
+        scene.add(rimLight);
+
+        // Skatepark Concrete Deck
+        const deckGeo = new THREE.PlaneGeometry(9.2, 120);
+        const deckMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 });
+        const deckMesh = new THREE.Mesh(deckGeo, deckMat);
+        deckMesh.rotation.x = -Math.PI / 2;
+        deckMesh.position.z = -45;
+        scene.add(deckMesh);
+
+        // Side Curbs
+        const curbGeo = new THREE.BoxGeometry(0.5, 0.35, 120);
+        const curbMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.5 });
+        const leftCurb = new THREE.Mesh(curbGeo, curbMat);
+        leftCurb.position.set(-4.75, 0.175, -45);
+        const rightCurb = new THREE.Mesh(curbGeo, curbMat);
+        rightCurb.position.set(4.75, 0.175, -45);
+        scene.add(leftCurb, rightCurb);
+
+        // Scrolling Lane Dividers
+        const stripeGeo = new THREE.PlaneGeometry(0.12, 2.4);
+        const stripeMat = new THREE.MeshBasicMaterial({ color: 0x475569 });
+        for (let z = 6; z > -106; z -= 7) {
+          [-1.2, 1.2].forEach((x) => {
+            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+            stripe.rotation.x = -Math.PI / 2;
+            stripe.position.set(x, 0.01, z);
+            scene.add(stripe);
+            groundStripes.push(stripe);
+          });
+        }
+
+        // Side Scenery Light Posts
+        const postGeo = new THREE.BoxGeometry(0.25, 3.6, 0.25);
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+        const lampGeo = new THREE.SphereGeometry(0.24, 10, 10);
+        const lampMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+        for (let z = 0; z > -112; z -= 14) {
+          [-5.6, 5.6].forEach((x) => {
+            const group = new THREE.Group();
+            const post = new THREE.Mesh(postGeo, postMat);
+            post.position.y = 1.8;
+            const lamp = new THREE.Mesh(lampGeo, lampMat);
+            lamp.position.y = 3.7;
+            group.add(post, lamp);
+            group.position.set(x, 0, z);
+            scene.add(group);
+            sceneryObjects.push(group);
+          });
+        }
+
+        // Build 3D Skateboard + Skater Character
+        skaterGroup = new THREE.Group();
+
+        const boardGeo = new THREE.BoxGeometry(0.78, 0.1, 2.0);
+        const boardMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.35 });
+        boardMesh = new THREE.Mesh(boardGeo, boardMat);
+        boardMesh.position.y = 0.22;
+        skaterGroup.add(boardMesh);
+
+        const wheelGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.1, 12);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24 });
+        frontWheelL = new THREE.Mesh(wheelGeo, wheelMat);
+        frontWheelL.rotation.z = Math.PI / 2;
+        frontWheelL.position.set(-0.34, 0.11, -0.68);
+
+        frontWheelR = frontWheelL.clone();
+        frontWheelR.position.x = 0.34;
+
+        backWheelL = frontWheelL.clone();
+        backWheelL.position.z = 0.68;
+
+        backWheelR = frontWheelR.clone();
+        backWheelR.position.z = 0.68;
+
+        skaterGroup.add(frontWheelL, frontWheelR, backWheelL, backWheelR);
+
+        // Stylized Skater Torso, Head & Helmet
+        const legsGeo = new THREE.BoxGeometry(0.45, 0.68, 0.32);
+        const legsMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a });
+        const legsMesh = new THREE.Mesh(legsGeo, legsMat);
+        legsMesh.position.y = 0.62;
+        skaterGroup.add(legsMesh);
+
+        const torsoGeo = new THREE.BoxGeometry(0.56, 0.72, 0.36);
+        const torsoMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc });
+        const torsoMesh = new THREE.Mesh(torsoGeo, torsoMat);
+        torsoMesh.position.y = 1.32;
+        skaterGroup.add(torsoMesh);
+
+        const headGeo = new THREE.SphereGeometry(0.24, 14, 14);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xfdba74 });
+        const headMesh = new THREE.Mesh(headGeo, headMat);
+        headMesh.position.y = 1.92;
+        skaterGroup.add(headMesh);
+
+        const helmetGeo = new THREE.SphereGeometry(0.26, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
+        const helmetMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+        const helmetMesh = new THREE.Mesh(helmetGeo, helmetMat);
+        helmetMesh.position.y = 1.94;
+        skaterGroup.add(helmetMesh);
+
+        scene.add(skaterGroup);
+
+        webglReady = true;
+        renderer.render(scene, camera);
+      } catch (err) {
+        webglReady = false;
+      }
+    }
+
+    function resizeGameCanvas() {
+      const wrapper = document.getElementById("canvasWrapper");
+      if (!wrapper || !renderer || !camera) return;
+      const width = wrapper.clientWidth || 640;
+      const height = wrapper.clientHeight || 380;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+      if (scene) renderer.render(scene, camera);
+    }
+
+    function startSkateGame() {
+      if (!hasUnlimitedAccess() && trialExpired) {
+        openPaywallModal();
+        return;
+      }
+
+      if (!webglReady) {
+        initThreeEngine();
+      }
+
+      // Clear previous obstacles & collectibles
+      obstacles3D.forEach((o) => scene && scene.remove(o.mesh));
+      collectibles3D.forEach((c) => scene && scene.remove(c.mesh));
+      obstacles3D = [];
+      collectibles3D = [];
+
+      // Reset run stats
+      currentLaneIdx = 1;
+      if (skaterGroup) {
+        skaterGroup.position.set(0, 0, 0);
+        skaterGroup.rotation.set(0, 0, 0);
+      }
+      if (boardMesh) boardMesh.rotation.set(0, 0, 0);
+      skaterY = 0;
+      skaterVy = 0;
+      isGrounded = true;
+      isGrinding = false;
+      kickflipAngle = 0;
+      gameScore = 0;
+      gameCombo = 1;
+      gameSpeed = 0.34;
+      spawnAccumulator = 0;
+
+      document.getElementById("gameScoreHud").textContent = "0";
+      document.getElementById("gameComboHud").textContent = "x1";
+      document.getElementById("gameOverlay").classList.add("hidden");
+      document.getElementById("gameLockedOverlay").classList.add("hidden");
+
+      gameRunning = true;
+      lastFrameTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function switchLane(delta) {
+      if (!gameRunning) return;
+      currentLaneIdx = Math.max(0, Math.min(2, currentLaneIdx + delta));
+    }
+
+    function triggerJump() {
+      if (!gameRunning) return;
+      if (isGrounded || isGrinding) {
+        skaterVy = 0.31;
+        isGrounded = false;
+        isGrinding = false;
+        kickflipAngle = 0.05;
+        showTrickCallout("KICKFLIP OLLIE!", "text-amber-300");
+      }
+    }
+
+    function showTrickCallout(text, colorClass = "text-amber-300") {
+      const layer = document.getElementById("trickCalloutLayer");
+      if (!layer) return;
+      const badge = document.createElement("div");
+      badge.className = `trick-callout font-display font-extrabold text-lg sm:text-2xl drop-shadow-lg ${colorClass}`;
+      badge.textContent = text;
+      layer.appendChild(badge);
+      setTimeout(() => badge.remove(), 1100);
+    }
+
+    // Keyboard Controls (Arrow Keys, A/D, Space)
+    window.addEventListener("keydown", (e) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+      if (!gameRunning) return;
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        switchLane(-1);
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        switchLane(1);
+      } else if (e.key === " " || e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+        e.preventDefault();
+        triggerJump();
+      }
+    });
+
+    // Mobile Touch Swipe & Tap Controls on 3D Canvas
+    const canvasWrapperEl = document.getElementById("canvasWrapper");
+    canvasWrapperEl.addEventListener("touchstart", (e) => {
+      if (e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    canvasWrapperEl.addEventListener("touchend", (e) => {
+      if (!hasUnlimitedAccess() && trialExpired) {
+        openPaywallModal();
+        return;
+      }
+      if (!gameRunning) {
+        startSkateGame();
+        return;
+      }
+      if (e.changedTouches.length > 0) {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+          switchLane(dx > 0 ? 1 : -1);
+        } else {
+          triggerJump();
+        }
+      }
+    });
+
+    canvasWrapperEl.addEventListener("click", () => {
+      if (!hasUnlimitedAccess() && trialExpired) {
+        openPaywallModal();
+        return;
+      }
+      if (!gameRunning) {
+        startSkateGame();
+      } else {
+        triggerJump();
+      }
+    });
+
+    function spawn3DObstacleOrCollectible() {
+      if (!webglReady) return;
+      const laneIdx = Math.floor(Math.random() * 3);
+      const laneX = LANES[laneIdx];
+      const spawnZ = -85;
+      const roll = Math.random();
+
+      if (roll < 0.42) {
+        // Traffic Cone Obstacle
+        const coneGeo = new THREE.ConeGeometry(0.45, 1.05, 14);
+        const coneMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 });
+        const coneMesh = new THREE.Mesh(coneGeo, coneMat);
+        coneMesh.position.set(laneX, 0.52, spawnZ);
+        scene.add(coneMesh);
+        obstacles3D.push({ mesh: coneMesh, lane: laneIdx, type: "cone", z: spawnZ, length: 1.0 });
+      } else if (roll < 0.76) {
+        // Grind Rail (Jump onto it for 50-50 Grind!)
+        const railGroup = new THREE.Group();
+        const barGeo = new THREE.CylinderGeometry(0.08, 0.08, 5.2, 10);
+        const barMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.7, roughness: 0.2 });
+        const bar = new THREE.Mesh(barGeo, barMat);
+        bar.rotation.x = Math.PI / 2;
+        bar.position.y = 0.65;
+        railGroup.add(bar);
+
+        const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.65, 8);
+        const leg1 = new THREE.Mesh(legGeo, barMat);
+        leg1.position.set(0, 0.32, -2.0);
+        const leg2 = new THREE.Mesh(legGeo, barMat);
+        leg2.position.set(0, 0.32, 2.0);
+        railGroup.add(leg1, leg2);
+
+        railGroup.position.set(laneX, 0, spawnZ);
+        scene.add(railGroup);
+        obstacles3D.push({ mesh: railGroup, lane: laneIdx, type: "rail", z: spawnZ, length: 5.2, groundGrinded: false });
+      } else {
+        // Speed Boost Pad + Golden Skate Wheel
+        const wheelGeo = new THREE.TorusGeometry(0.36, 0.13, 10, 20);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xb45309, emissiveIntensity: 0.4 });
+        const wheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
+        wheelMesh.position.set(laneX, 0.9, spawnZ);
+        scene.add(wheelMesh);
+        collectibles3D.push({ mesh: wheelMesh, lane: laneIdx, z: spawnZ });
+      }
+    }
+
+    function gameLoop(timestamp) {
+      if (!gameRunning) return;
+
+      const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.1);
+      lastFrameTime = timestamp;
+
+      // Enforce 10-second free trial for non-paid visitors
+      if (!hasUnlimitedAccess()) {
+        trialSecondsLeft = Math.max(0, trialSecondsLeft - dt);
+        localStorage.setItem("sf_trial_left_v1", trialSecondsLeft.toFixed(2));
+
+        document.getElementById("trialCountdownDisplay").textContent = `${trialSecondsLeft.toFixed(1)}s`;
+        document.getElementById("accessBadgeText").textContent = `${trialSecondsLeft.toFixed(1)}s FREE TRIAL`;
+        document.getElementById("trialProgressBar").style.width = `${(trialSecondsLeft / TRIAL_DURATION_SECONDS) * 100}%`;
+
+        if (trialSecondsLeft <= 0) {
+          trialExpired = true;
+          gameRunning = false;
+          recordLeaderboardScore(gameScore);
+          updateAccessUI();
+          showToast("10-second free trial complete! Pay ₹1/day via Cashfree to unlock unlimited play.", "warning");
+          return;
+        }
+      }
+
+      update3DWorld(dt);
+      if (webglReady && renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
+
+      if (gameRunning) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function update3DWorld(dt) {
+      // Scroll lane stripes & scenery
+      groundStripes.forEach((s) => {
+        s.position.z += gameSpeed;
+        if (s.position.z > 10) s.position.z -= 112;
+      });
+      sceneryObjects.forEach((t) => {
+        t.position.z += gameSpeed;
+        if (t.position.z > 12) t.position.z -= 112;
+      });
+
+      // Smooth lane interpolation
+      const targetX = LANES[currentLaneIdx];
+      skaterGroup.position.x += (targetX - skaterGroup.position.x) * 0.22;
+      // Subtle carving tilt when switching lanes
+      skaterGroup.rotation.z = (skaterGroup.position.x - targetX) * 0.25;
+
+      // Vertical Jump & Gravity Physics
+      if (!isGrounded && !isGrinding) {
+        skaterY += skaterVy;
+        skaterVy -= 0.015;
+        if (kickflipAngle > 0 && boardMesh) {
+          kickflipAngle += 0.28;
+          boardMesh.rotation.z = kickflipAngle;
+        }
+        if (skaterY <= 0) {
+          skaterY = 0;
+          skaterVy = 0;
+          isGrounded = true;
+          kickflipAngle = 0;
+          if (boardMesh) boardMesh.rotation.z = 0;
+        }
+      }
+      skaterGroup.position.y = skaterY;
+
+      // Spin skateboard wheels
+      [frontWheelL, frontWheelR, backWheelL, backWheelR].forEach((w) => {
+        w.rotation.x -= gameSpeed * 1.4;
+      });
+
+      // Spawn obstacles & golden wheels
+      spawnAccumulator += gameSpeed;
+      if (spawnAccumulator > Math.max(9.5, 15 - gameScore * 0.004)) {
+        spawnAccumulator = 0;
+        spawn3DObstacleOrCollectible();
+      }
+
+      // Update Obstacles & Rail Grinding
+      let currentlyOnRail = false;
+      for (let i = obstacles3D.length - 1; i >= 0; i--) {
+        const obs = obstacles3D[i];
+        obs.z += gameSpeed;
+        obs.mesh.position.z = obs.z;
+
+        const sameLane = Math.abs(skaterGroup.position.x - LANES[obs.lane]) < 0.75;
+        const halfLen = obs.length / 2 + 0.55;
+
+        if (sameLane && Math.abs(obs.z) < halfLen) {
+          if (obs.type === "cone") {
+            if (skaterY < 0.78) {
+              endGameRun();
+              return;
+            }
+          } else if (obs.type === "rail") {
+            // If skater jumped onto the rail height, trigger 50-50 Grind!
+            if (skaterY >= 0.35 && skaterY <= 1.25) {
+              currentlyOnRail = true;
+              isGrinding = true;
+              skaterY = 0.68;
+              skaterVy = 0;
+              if (!obs.groundGrinded) {
+                obs.groundGrinded = true;
+                gameCombo = Math.min(8, gameCombo + 1);
+                gameScore += 40 * gameCombo;
+                showTrickCallout(`50-50 GRIND! x${gameCombo}`, "text-sky-300");
+              }
+            } else if (skaterY < 0.35) {
+              endGameRun();
+              return;
+            }
+          }
+        }
+
+        if (obs.z > 10) {
+          scene.remove(obs.mesh);
+          obstacles3D.splice(i, 1);
+          gameScore += 10 * gameCombo;
+          gameSpeed = Math.min(0.68, gameSpeed + 0.003);
+        }
+      }
+
+      if (isGrinding && !currentlyOnRail) {
+        isGrinding = false;
+        isGrounded = false;
+      }
+
+      // Update Collectibles (Golden Skate Wheels)
+      for (let i = collectibles3D.length - 1; i >= 0; i--) {
+        const c = collectibles3D[i];
+        c.z += gameSpeed;
+        c.mesh.position.z = c.z;
+        c.mesh.rotation.y += 0.08;
+
+        const sameLane = Math.abs(skaterGroup.position.x - LANES[c.lane]) < 0.85;
+        if (sameLane && Math.abs(c.z) < 1.1 && skaterY < 1.7) {
+          gameScore += 30 * gameCombo;
+          gameSpeed = Math.min(0.72, gameSpeed + 0.015);
+          showTrickCallout(`GOLDEN WHEEL +${30 * gameCombo}!`, "text-emerald-300");
+          scene.remove(c.mesh);
+          collectibles3D.splice(i, 1);
+          continue;
+        }
+
+        if (c.z > 10) {
+          scene.remove(c.mesh);
+          collectibles3D.splice(i, 1);
+        }
+      }
+
+      document.getElementById("gameScoreHud").textContent = gameScore;
+      document.getElementById("gameComboHud").textContent = `x${gameCombo}`;
+    }
+
+    function endGameRun() {
+      gameRunning = false;
+      const best = parseInt(localStorage.getItem("sf_best_score_v1") || "0", 10);
+      if (gameScore > best) {
+        localStorage.setItem("sf_best_score_v1", gameScore.toString());
+        document.getElementById("gameBestHud").textContent = gameScore;
+      }
+      recordLeaderboardScore(gameScore);
+
+      if (!hasUnlimitedAccess() && trialExpired) {
+        updateAccessUI();
+        return;
+      }
+
+      document.getElementById("overlayTitle").textContent = `Bail! Final Score: ${gameScore}`;
+      document.getElementById("overlayDesc").textContent = hasUnlimitedAccess()
+        ? "Unlimited pass active! Tap below to drop back into the 3D skatepark."
+        : `You still have ${trialSecondsLeft.toFixed(1)}s left on your free 3D trial!`;
+      document.getElementById("overlayBtnText").textContent = "Skate Again";
+      document.getElementById("gameOverlay").classList.remove("hidden");
+    }
+
+    // =========================================================================
+    // 5. ₹1/DAY CASHFREE PAYWALL & HERMES AUTO-SYNC LOGIC
+    // =========================================================================
+    function openPaywallModal() {
+      if (currentUser && currentUser.role === "admin") {
+        showToast("You are logged in as Admin LAKHILOHIA — no payment required!", "info");
+        return;
+      }
+      document.getElementById("paywallModal").classList.remove("hidden");
+      if (localStorage.getItem("sf_pending_payment_v1") === "true") {
+        document.getElementById("autoSyncStatusBanner").classList.remove("hidden");
+      }
+    }
+
+    function closePaywallModal() {
+      document.getElementById("paywallModal").classList.add("hidden");
+    }
+
+    function toggleManualRefFallback() {
+      const form = document.getElementById("manualRefFallbackForm");
+      form.classList.toggle("hidden");
+    }
+
+    function checkUrlCallbackAutoSync() {
+      if (!hermesConfig.urlCallbackEnabled) return;
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const hash = window.location.hash.toLowerCase();
+        const statusParam = (
+          params.get("payment_status") ||
+          params.get("cf_status") ||
+          params.get("status") ||
+          ""
+        ).toUpperCase();
+        const orderId = params.get("order_id") || params.get("cf_order_id") || params.get("txnid") || "CF-RETURN";
+
+        if (
+          statusParam === "SUCCESS" ||
+          statusParam === "PAID" ||
+          statusParam === "COMPLETED" ||
+          hash.includes("paid") ||
+          hash.includes("payment-success")
+        ) {
+          // Clean sensitive query params from browser address bar
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          completeAutoPaymentUnlock(orderId, "Cashfree Return URL Auto-Sync");
+        }
+      } catch (err) {
+        // Ignore malformed URL params
+      }
+    }
+
+    function startAutomaticPaymentSync(isResume = false) {
+      localStorage.setItem("sf_pending_payment_v1", "true");
+      const banner = document.getElementById("autoSyncStatusBanner");
+      if (banner) banner.classList.remove("hidden");
+
+      const subStatus = document.getElementById("autoSyncSubStatus");
+      if (subStatus) {
+        subStatus.textContent = hermesConfig.endpointUrl
+          ? `Polling Hermes Endpoint (${hermesConfig.endpointUrl}) every ${hermesConfig.pollIntervalSec || 3}s for Session ${visitorSessionId}...`
+          : `Auto-Sync active for Session ${visitorSessionId} — complete ₹1 on Cashfree and return here to unlock automatically!`;
+      }
+
+      if (!isResume) {
+        showToast("Cashfree opened! Hermes Auto-Sync is watching for your ₹1 payment...", "info");
+      }
+
+      if (paymentSyncTimer) clearInterval(paymentSyncTimer);
+      const intervalMs = Math.max(2000, (parseInt(hermesConfig.pollIntervalSec, 10) || 3) * 1000);
+
+      // Immediate check + periodic polling
+      pollHermesEndpointOnce();
+      paymentSyncTimer = setInterval(() => {
+        if (hasUnlimitedAccess()) {
+          clearInterval(paymentSyncTimer);
+          paymentSyncTimer = null;
+          return;
+        }
+        pollHermesEndpointOnce();
+      }, intervalMs);
+    }
+
+    async function pollHermesEndpointOnce() {
+      if (hasUnlimitedAccess()) return;
+      if (!hermesConfig.autoSyncEnabled || !hermesConfig.endpointUrl) return;
+
+      try {
+        const url = new URL(hermesConfig.endpointUrl);
+        url.searchParams.set("session_id", visitorSessionId);
+        if (currentUser && currentUser.id) {
+          url.searchParams.set("user_id", currentUser.id);
+        }
+
+        const headers = { Accept: "application/json" };
+        if (hermesConfig.apiKey) {
+          headers["Authorization"] = `Bearer ${hermesConfig.apiKey}`;
+          headers["X-Hermes-Key"] = hermesConfig.apiKey;
+        }
+
+        const response = await fetch(url.toString(), { method: "GET", headers });
+        if (!response.ok) return;
+        const data = await response.json();
+
+        const isVerified =
+          data.paid === true ||
+          data.verified === true ||
+          (typeof data.status === "string" && ["SUCCESS", "PAID", "ACTIVE"].includes(data.status.toUpperCase()));
+
+        if (isVerified) {
+          const ref = data.order_id || data.payment_id || data.utr || "HERMES-AUTO";
+          completeAutoPaymentUnlock(ref, "Hermes Custom Endpoint");
+        }
+      } catch (err) {
+        // Silent retry on next poll interval
+      }
+    }
+
+    function completeAutoPaymentUnlock(refId, sourceLabel = "Hermes Auto-Sync") {
+      if (paymentSyncTimer) {
+        clearInterval(paymentSyncTimer);
+        paymentSyncTimer = null;
+      }
+      localStorage.removeItem("sf_pending_payment_v1");
+
+      // Grant 24-hour (1-day) hassle-free access
+      dailyPassExpiry = Date.now() + ONE_DAY_MS;
+      localStorage.setItem("sf_pass_expiry_v1", dailyPassExpiry.toString());
+
+      // Auto-create visitor profile if guest
+      if (!currentUser) {
+        const shortTag = String(refId).slice(-5) || visitorSessionId.slice(-4);
+        currentUser = { role: "visitor", name: `Skater #${shortTag}`, id: refId };
+        localStorage.setItem("sf_user_v1", JSON.stringify(currentUser));
+      }
+
+      const banner = document.getElementById("autoSyncStatusBanner");
+      if (banner) banner.classList.add("hidden");
+
+      closePaywallModal();
+      updateAccessUI();
+      renderBlogPosts();
+      showToast(`Payment Auto-Synced (${sourceLabel})! 24-Hour Pro Pass Active — Play Hassle-Free!`, "success");
+    }
+
+    function activateDailyPass(e) {
+      e.preventDefault();
+      const refId = document.getElementById("cashfreeRefInput").value.trim();
+      if (refId.length < 6) {
+        showToast("Please enter a valid Cashfree Transaction / Reference ID (min 6 characters).", "error");
+        return;
+      }
+      document.getElementById("cashfreeRefInput").value = "";
+      completeAutoPaymentUnlock(refId, "Manual Reference ID");
+    }
+
+    // Admin Hermes Endpoint Settings Handlers
+    function saveHermesConfig() {
+      if (!currentUser || currentUser.role !== "admin") return;
+      hermesConfig = {
+        endpointUrl: document.getElementById("hermesEndpointUrlInput").value.trim(),
+        apiKey: document.getElementById("hermesApiKeyInput").value.trim(),
+        pollIntervalSec: Math.max(2, Math.min(30, parseInt(document.getElementById("hermesPollIntervalInput").value, 10) || 3)),
+        autoSyncEnabled: document.getElementById("hermesAutoSyncToggle").checked,
+        urlCallbackEnabled: document.getElementById("hermesUrlCallbackToggle").checked
+      };
+      localStorage.setItem("sf_hermes_config_v1", JSON.stringify(hermesConfig));
+      const logEl = document.getElementById("hermesDiagnosticLog");
+      if (logEl) {
+        logEl.textContent = `Saved! Endpoint: ${hermesConfig.endpointUrl || "Built-in Callback/Cross-Tab Sync"} | Interval: ${hermesConfig.pollIntervalSec}s`;
+      }
+      showToast("Hermes / Custom Endpoint settings saved!", "success");
+    }
+
+    async function testHermesEndpoint() {
+      const endpoint = document.getElementById("hermesEndpointUrlInput").value.trim();
+      const logEl = document.getElementById("hermesDiagnosticLog");
+      if (!endpoint) {
+        if (logEl) logEl.textContent = "No external URL entered — Built-in Cashfree Return URL, Cross-Tab & PostMessage Sync are active.";
+        showToast("Enter a Custom Endpoint URL first or use Simulate Webhook Push.", "info");
+        return;
+      }
+      if (logEl) logEl.textContent = `Pinging ${endpoint}...`;
+      try {
+        const res = await fetch(endpoint, { method: "GET" });
+        if (logEl) logEl.textContent = `Endpoint responded with HTTP ${res.status} (${res.statusText}). Ready for auto-sync!`;
+        showToast(`Hermes Endpoint reachable (HTTP ${res.status})!`, "success");
+      } catch (err) {
+        if (logEl) logEl.textContent = `Ping note: Browser CORS or offline endpoint (${err.message}). Return URL & Cross-Tab sync remain active.`;
+        showToast("Endpoint unreachable or CORS restricted — check server headers.", "warning");
+      }
+    }
+
+    function simulateHermesWebhookPush() {
+      const simOrderId = "HERMES_CF_" + Math.floor(100000 + Math.random() * 900000);
+      const logEl = document.getElementById("hermesDiagnosticLog");
+      if (logEl) {
+        logEl.textContent = `Simulated Webhook Received: {"paid": true, "order_id": "${simOrderId}", "valid_hours": 24}`;
+      }
+      // Broadcast across open tabs via localStorage as well
+      const simulatedExpiry = Date.now() + ONE_DAY_MS;
+      localStorage.setItem("sf_pass_expiry_v1", simulatedExpiry.toString());
+      showToast(`Simulated Hermes Webhook (${simOrderId}) pushed! Visitors auto-unlocked for 24h.`, "success");
+    }
+
+    // =========================================================================
+    // 6. BLOGGER FEED, READER MODAL & LEADERBOARD RENDERING
+    // =========================================================================
+    function filterCategory(category) {
+      selectedCategory = category;
+      document.getElementById("feedHeadingTitle").textContent =
+        category === "All" ? "Latest Skating Tutorials & Guides" : `${category} Tutorials`;
+
+      document.querySelectorAll(".cat-btn").forEach((btn) => {
+        const isActive = btn.dataset.cat === category;
+        if (btn.closest("nav")) {
+          btn.className = isActive
+            ? "cat-btn active-cat px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition"
+            : "cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+        } else {
+          btn.className = isActive
+            ? "cat-btn active-cat px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-900 text-white whitespace-nowrap"
+            : "cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-700 whitespace-nowrap";
+        }
+      });
+
+      renderBlogPosts();
+    }
+
+    function renderBlogPosts() {
+      const container = document.getElementById("blogPostsContainer");
+      const query = (document.getElementById("searchPostsInput")?.value || "").trim().toLowerCase();
+      const unlocked = hasUnlimitedAccess();
+
+      const filtered = posts.filter((p) => {
+        const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
+        const matchesQuery =
+          !query ||
+          p.title.toLowerCase().includes(query) ||
+          p.summary.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query);
+        return matchesCat && matchesQuery;
+      });
+
+      document.getElementById("statTotalPosts").textContent = `${posts.length} Lessons`;
+      renderSidebarLabels();
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-3xl border border-slate-200 p-10 text-center">
+            <i class="fa-solid fa-magnifying-glass text-3xl text-slate-300 mb-3"></i>
+            <h3 class="font-display font-bold text-slate-800 text-base">No Skating Tutorials Found</h3>
+            <p class="text-xs text-slate-500 mt-1">Try clearing your search filter or selecting "All Lessons".</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered
+        .map((post) => {
+          const coverImg =
+            post.image ||
+            "https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?auto=format&fit=crop&w=900&q=80";
+          const accessTag = unlocked
+            ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200"><i class="fa-solid fa-lock-open"></i> Full Guide Unlocked</span>`
+            : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200"><i class="fa-solid fa-lock"></i> ₹1/Day Pro Guide</span>`;
+
+          return `
+            <article class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col sm:flex-row">
+              <div class="sm:w-56 h-48 sm:h-auto shrink-0 bg-slate-900 relative overflow-hidden">
+                <img src="${escapeHtml(coverImg)}" alt="${escapeHtml(post.title)}" onerror="this.src='https://placehold.co/600x400/0f172a/f97316?text=SkateFlow+Lesson'" class="w-full h-full object-cover" />
+                <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur text-white text-[10px] font-extrabold uppercase tracking-wider">
+                  ${escapeHtml(post.difficulty)}
+                </span>
+              </div>
+              <div class="p-5 sm:p-6 flex-1 flex flex-col justify-between">
+                <div>
+                  <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <span class="text-xs font-extrabold text-orange-600">${escapeHtml(post.category)}</span>
+                    <span class="text-[11px] text-slate-400">${escapeHtml(post.date)} • ${escapeHtml(post.author)}</span>
+                  </div>
+                  <h3 class="font-display text-lg sm:text-xl font-extrabold text-slate-900 leading-snug mb-2">
+                    ${escapeHtml(post.title)}
+                  </h3>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
+                    ${escapeHtml(post.summary)}
+                  </p>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                  ${accessTag}
+                  <button onclick="openLessonModal('${post.id}')" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-2 transition">
+                    <span>${unlocked ? "Read Full Tutorial" : "Preview / Unlock Lesson"}</span>
+                    <i class="fa-solid fa-arrow-right text-[11px]"></i>
+                  </button>
+                </div>
+              </div>
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function renderSidebarLabels() {
+      const labelsEl = document.getElementById("sidebarLabelsList");
+      if (!labelsEl) return;
+      const counts = {};
+      posts.forEach((p) => {
+        counts[p.category] = (counts[p.category] || 0) + 1;
+      });
+      labelsEl.innerHTML = Object.entries(counts)
+        .map(
+          ([cat, count]) => `
+            <button onclick="filterCategory('${escapeHtml(cat)}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-orange-100 text-slate-700 hover:text-orange-700 text-xs font-bold flex items-center gap-1.5 transition">
+              <span>${escapeHtml(cat)}</span>
+              <span class="px-1.5 py-0.2 rounded bg-white text-[10px] text-slate-500">${count}</span>
+            </button>
+          `
+        )
+        .join("");
+    }
+
+    function openLessonModal(postId) {
+      const post = posts.find((p) => p.id === postId);
+      if (!post) return;
+
+      document.getElementById("modalPostCategory").textContent = post.category;
+      document.getElementById("modalPostDifficulty").textContent = post.difficulty;
+
+      const unlocked = hasUnlimitedAccess();
+      const bodyEl = document.getElementById("lessonModalBody");
+
+      if (unlocked) {
+        bodyEl.innerHTML = `
+          <h2 class="font-display text-xl sm:text-2xl font-extrabold text-slate-900">${escapeHtml(post.title)}</h2>
+          <p class="text-xs text-slate-500">Published ${escapeHtml(post.date)} by ${escapeHtml(post.author)}</p>
+          <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 font-medium">
+            <strong>Lesson Overview:</strong> ${escapeHtml(post.summary)}
+          </div>
+          <div class="text-sm text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50 p-5 rounded-2xl border border-slate-200">
+            ${escapeHtml(post.content)}
+          </div>
+        `;
+      } else {
+        bodyEl.innerHTML = `
+          <h2 class="font-display text-xl sm:text-2xl font-extrabold text-slate-900">${escapeHtml(post.title)}</h2>
+          <p class="text-xs text-slate-500">Published ${escapeHtml(post.date)} by ${escapeHtml(post.author)}</p>
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-700">
+            <strong>Free Visitor Summary:</strong> ${escapeHtml(post.summary)}
+          </div>
+          <div class="p-6 rounded-2xl bg-slate-900 text-white text-center space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center text-xl mx-auto">
+              <i class="fa-solid fa-lock"></i>
+            </div>
+            <h4 class="font-display text-lg font-extrabold">Unlock Step-by-Step Pro Coaching</h4>
+            <p class="text-xs text-slate-300 max-w-md mx-auto">
+              Full foot-placement breakdowns, pro drills, and unlimited 3D skatepark runs are included with the <strong>₹1/day Cashfree Pass</strong> (Admin LAKHILOHIA is fee-exempt).
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button onclick="closeLessonModal(); openPaywallModal();" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold text-xs">
+                Pay ₹1 via Cashfree (24h Pass)
+              </button>
+              <button onclick="closeLessonModal(); openAuthModal('admin');" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">
+                Admin Login
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById("lessonModal").classList.remove("hidden");
+    }
+
+    function closeLessonModal() {
+      document.getElementById("lessonModal").classList.add("hidden");
+    }
+
+    function recordLeaderboardScore(score) {
+      if (score <= 0) return;
+      const riderName = currentUser ? currentUser.name : `Guest_${visitorSessionId.slice(-4)}`;
+      const badge =
+        currentUser && currentUser.role === "admin"
+          ? "ADMIN"
+          : dailyPassExpiry > Date.now()
+          ? "24H PASS"
+          : "TRIAL";
+
+      const existing = leaderboard.find((entry) => entry.name === riderName);
+      if (existing) {
+        if (score > existing.score) {
+          existing.score = score;
+          existing.badge = badge;
+        }
+      } else {
+        leaderboard.push({ name: riderName, score, badge });
+      }
+
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 6);
+      localStorage.setItem("sf_leaderboard_v1", JSON.stringify(leaderboard));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const el = document.getElementById("leaderboardList");
+      if (!el) return;
+      el.innerHTML = leaderboard
+        .map((item, idx) => {
+          const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+          return `
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="font-bold text-slate-500 w-5 text-center">${medal}</span>
+                <span class="font-bold text-slate-800 truncate">${escapeHtml(item.name)}</span>
+                <span class="px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 text-[9px] font-extrabold">${escapeHtml(item.badge)}</span>
+              </div>
+              <span class="font-display font-extrabold text-slate-900">${item.score}</span>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    // =========================================================================
+    // 7. ADMIN BLOGGER CMS CONTROLS (POSTS, ADMOB ADS, THEME CUSTOMIZER)
+    // =========================================================================
+    function toggleAdminPanel() {
+      if (!currentUser || currentUser.role !== "admin") {
+        openAuthModal("admin");
+        return;
+      }
+      const adminView = document.getElementById("adminDashboardView");
+      if (adminView.classList.contains("hidden")) {
+        switchMainView("admin");
+      } else {
+        switchMainView("blog");
+      }
+    }
+
+    function switchMainView(view) {
+      const blogView = document.getElementById("publicBlogView");
+      const adminView = document.getElementById("adminDashboardView");
+      const toggleLabel = document.getElementById("adminToggleLabel");
+
+      if (view === "admin" && currentUser && currentUser.role === "admin") {
+        blogView.classList.add("hidden");
+        adminView.classList.remove("hidden");
+        if (toggleLabel) toggleLabel.textContent = "Back to Live Blog";
+        renderAdminPostsList();
+      } else {
+        adminView.classList.add("hidden");
+        blogView.classList.remove("hidden");
+        if (toggleLabel) toggleLabel.textContent = "Admin Blogger CMS";
+        resizeGameCanvas();
+      }
+    }
+
+    function switchAdminTab(tab) {
+      const tabs = ["posts", "ads", "hermes", "theme"];
+      tabs.forEach((t) => {
+        const panel = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (t === tab) {
+          panel.classList.remove("hidden");
+          btn.className = "admin-tab-btn px-4 py-2.5 rounded-xl text-xs font-extrabold bg-orange-600 text-white flex items-center gap-2 transition";
+        } else {
+          panel.classList.add("hidden");
+          btn.className = "admin-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition";
+        }
+      });
+    }
+
+    function saveBlogPost(e) {
+      e.preventDefault();
+      if (!currentUser || currentUser.role !== "admin") return;
+
+      const editId = document.getElementById("editPostId").value;
+      const title = document.getElementById("postTitleInput").value.trim();
+      const category = document.getElementById("postCategoryInput").value;
+      const difficulty = document.getElementById("postDifficultyInput").value;
+      const image = document.getElementById("postImageInput").value.trim();
+      const summary = document.getElementById("postSummaryInput").value.trim();
+      const content = document.getElementById("postContentInput").value.trim();
+
+      if (editId) {
+        const idx = posts.findIndex((p) => p.id === editId);
+        if (idx !== -1) {
+          posts[idx] = { ...posts[idx], title, category, difficulty, image, summary, content };
+          showToast("Blogger post updated!", "success");
+        }
+      } else {
+        const newPost = {
+          id: "post-" + Date.now(),
+          title,
+          category,
+          difficulty,
+          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          author: "Coach Lakhi (Admin)",
+          image: image || "https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?auto=format&fit=crop&w=900&q=80",
+          summary,
+          content
+        };
+        posts.unshift(newPost);
+        showToast("New skating lesson published to Blogger feed!", "success");
+      }
+
+      localStorage.setItem("sf_posts_v1", JSON.stringify(posts));
+      resetPostForm();
+      renderBlogPosts();
+      renderAdminPostsList();
+    }
+
+    function editBlogPost(postId) {
+      const post = posts.find((p) => p.id === postId);
+      if (!post) return;
+
+      document.getElementById("editPostId").value = post.id;
+      document.getElementById("postTitleInput").value = post.title;
+      document.getElementById("postCategoryInput").value = post.category;
+      document.getElementById("postDifficultyInput").value = post.difficulty;
+      document.getElementById("postImageInput").value = post.image || "";
+      document.getElementById("postSummaryInput").value = post.summary;
+      document.getElementById("postContentInput").value = post.content;
+
+      document.getElementById("postFormTitle").innerHTML =
+        `<i class="fa-solid fa-pen text-orange-600"></i> <span>Edit Skating Lesson</span>`;
+      document.getElementById("savePostBtnText").textContent = "Update Post";
+      document.getElementById("cancelEditBtn").classList.remove("hidden");
+    }
+
+    function deleteBlogPost(postId) {
+      if (!currentUser || currentUser.role !== "admin") return;
+      posts = posts.filter((p) => p.id !== postId);
+      localStorage.setItem("sf_posts_v1", JSON.stringify(posts));
+      renderBlogPosts();
+      renderAdminPostsList();
+      showToast("Post deleted from Blogger feed.", "info");
+    }
+
+    function resetPostForm() {
+      document.getElementById("adminPostForm").reset();
+      document.getElementById("editPostId").value = "";
+      document.getElementById("postFormTitle").innerHTML =
+        `<i class="fa-solid fa-plus-circle text-orange-600"></i> <span>Publish New Skating Lesson</span>`;
+      document.getElementById("savePostBtnText").textContent = "Publish Post";
+      document.getElementById("cancelEditBtn").classList.add("hidden");
+    }
+
+    function renderAdminPostsList() {
+      const listEl = document.getElementById("adminPostsList");
+      const badgeEl = document.getElementById("adminPostsCountBadge");
+      if (!listEl) return;
+      if (badgeEl) badgeEl.textContent = `${posts.length} Posts`;
+
+      listEl.innerHTML = posts
+        .map(
+          (p) => `
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-[10px] font-extrabold">${escapeHtml(p.category)}</span>
+                  <span class="text-[11px] text-slate-400">${escapeHtml(p.difficulty)} • ${escapeHtml(p.date)}</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 truncate">${escapeHtml(p.title)}</h4>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button onclick="editBlogPost('${p.id}')" class="px-3 py-1.5 rounded-lg bg-white hover:bg-amber-50 border border-slate-200 text-slate-700 text-xs font-bold transition">
+                  <i class="fa-solid fa-pen mr-1 text-amber-500"></i> Edit
+                </button>
+                <button onclick="deleteBlogPost('${p.id}')" class="px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-rose-600 text-xs font-bold transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    // AdMob & Banner HTML Injection Controls
+    function saveAdCodes() {
+      if (!currentUser || currentUser.role !== "admin") return;
+      adCodes = {
+        top: document.getElementById("adInputTop").value.trim(),
+        inFeed: document.getElementById("adInputInFeed").value.trim(),
+        sidebar: document.getElementById("adInputSidebar").value.trim(),
+        footer: document.getElementById("adInputFooter").value.trim()
+      };
+      localStorage.setItem("sf_ads_v1", JSON.stringify(adCodes));
+      applyAdCodesToDom();
+      showToast("Live AdMob / HTML banners updated across all slots!", "success");
+    }
+
+    function applyAdCodesToDom() {
+      if (adCodes.top) document.getElementById("adSlotTop").innerHTML = adCodes.top;
+      if (adCodes.inFeed) document.getElementById("adSlotInFeed").innerHTML = adCodes.inFeed;
+      if (adCodes.sidebar) document.getElementById("adSlotSidebar").innerHTML = adCodes.sidebar;
+      if (adCodes.footer) document.getElementById("adSlotFooter").innerHTML = adCodes.footer;
+    }
+
+    function toggleAdsVisibility(notify = true) {
+      adsEnabled = document.getElementById("adsEnabledToggle").checked;
+      localStorage.setItem("sf_ads_enabled_v1", adsEnabled.toString());
+      ["adWrapperTop", "adWrapperInFeed", "adWrapperSidebar", "adWrapperFooter"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("hidden", !adsEnabled);
+      });
+      if (notify) {
+        showToast(adsEnabled ? "Banner ads enabled live." : "Banner ads hidden.", "info");
+      }
+    }
+
+    function resetDefaultAds() {
+      localStorage.removeItem("sf_ads_v1");
+      adCodes = { top: "", inFeed: "", sidebar: "", footer: "" };
+      document.getElementById("adInputTop").value = "";
+      document.getElementById("adInputInFeed").value = "";
+      document.getElementById("adInputSidebar").value = "";
+      document.getElementById("adInputFooter").value = "";
+      showToast("Ad slots cleared. Reload or save new AdMob tags anytime.", "info");
+    }
+
+    // HTML & UI Customizer Controls
+    function saveCustomHtmlTheme() {
+      if (!currentUser || currentUser.role !== "admin") return;
+      const topHtml = document.getElementById("customTopHtmlInput").value.trim();
+      const heroHeadline = document.getElementById("customHeroHeadlineInput").value.trim();
+      const accent = document.getElementById("customAccentThemeInput").value;
+
+      themeSettings = { topHtml, heroHeadline, accent };
+      localStorage.setItem("sf_theme_v1", JSON.stringify(themeSettings));
+
+      if (topHtml) document.getElementById("customTopHtmlSlot").innerHTML = topHtml;
+      if (heroHeadline) document.getElementById("heroHeadlineText").textContent = heroHeadline;
+      applyAccentTheme(accent);
+
+      showToast("Custom HTML banner & UI theme applied live!", "success");
+    }
+
+    function applyAccentTheme(accent) {
+      const topSlot = document.getElementById("customTopHtmlSlot");
+      if (!topSlot) return;
+      const colorMap = {
+        orange: "w-full bg-slate-900 text-amber-300 text-xs sm:text-sm font-medium text-center py-2 px-4 border-b border-slate-800",
+        emerald: "w-full bg-emerald-950 text-emerald-300 text-xs sm:text-sm font-medium text-center py-2 px-4 border-b border-emerald-900",
+        indigo: "w-full bg-indigo-950 text-indigo-300 text-xs sm:text-sm font-medium text-center py-2 px-4 border-b border-indigo-900",
+        rose: "w-full bg-rose-950 text-rose-300 text-xs sm:text-sm font-medium text-center py-2 px-4 border-b border-rose-900"
+      };
+      topSlot.className = colorMap[accent] || colorMap.orange;
+    }
+
+    function copyAiPrompt() {
+      const promptEl = document.getElementById("aiStudioPromptText");
+      if (!promptEl) return;
+      const textarea = document.createElement("textarea");
+      textarea.value = promptEl.textContent.trim();
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      showToast("Short prompt copied! Ready to paste into Google AI Studio.", "success");
+    }
+
+    // =========================================================================
+    // 8. UTILITIES (TOAST NOTIFICATIONS & HTML ESCAPING)
+    // =========================================================================
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toastContainer");
+      if (!container) return;
+
+      const styles = {
+        success: "bg-emerald-600 text-white border-emerald-500",
+        error: "bg-rose-600 text-white border-rose-500",
+        warning: "bg-amber-500 text-slate-950 border-amber-400",
+        info: "bg-slate-900 text-white border-slate-700"
+      };
+      const icons = {
+        success: "fa-circle-check",
+        error: "fa-circle-exclamation",
+        warning: "fa-triangle-exclamation",
+        info: "fa-circle-info"
+      };
+
+      const toast = document.createElement("div");
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-2xl border shadow-xl text-xs font-bold transition-all duration-300 ${styles[type] || styles.info}`;
+      toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info} text-sm shrink-0"></i><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(8px)";
+        setTimeout(() => toast.remove(), 300);
+      }, 3600);
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    window.addEventListener("resize", resizeGameCanvas);
+    window.onload = function () {
+      initApp();
+      initThreeEngine();
+      resizeGameCanvas();
+    };
+  </script>
+</body>
+</html>
